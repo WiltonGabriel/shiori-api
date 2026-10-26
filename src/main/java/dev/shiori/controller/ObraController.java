@@ -4,9 +4,11 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,6 +23,7 @@ import dev.shiori.domain.enums.TipoObra;
 import dev.shiori.dto.ObraCadastroRequest;
 import dev.shiori.dto.ObraResponse;
 import dev.shiori.dto.ResultadoBuscaObrasResponse;
+import dev.shiori.dto.obra.ObraBuscaAvancadaFiltro;
 import dev.shiori.infra.integration.IntegracaoMetadadosObra;
 import dev.shiori.infra.security.CurrentUser;
 import dev.shiori.infra.security.UsuarioPrincipal;
@@ -95,6 +98,13 @@ public class ObraController {
         Long usuarioId = usuarioLogado != null ? usuarioLogado.getId() : null;
         ResultadoBuscaObrasResponse response = obraService.buscarObrasComAssistencia(termo, usuarioId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/busca-avancada")
+    public ResponseEntity<Page<ObraResponse>> buscarObrasAvancada(
+            @Valid @ModelAttribute ObraBuscaAvancadaFiltro filtro) {
+        Page<ObraResponse> pagina = obraService.buscarObrasAvancada(filtro);
+        return ResponseEntity.ok(pagina);
     }
 
     @GetMapping("/externas/pesquisar")

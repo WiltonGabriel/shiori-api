@@ -201,7 +201,7 @@ Abaixo estão os endpoints fundamentais para quem deseja criar uma interface com
 ## 5. Exemplo de Consumo com TypeScript / Fetch
 
 ```typescript
-const API_URL = "http://100.127.79.49:8088";
+const API_URL = "http://localhost:8080";
 
 // 1. Obter catálogo público
 async function carregarCatalogo() {

@@ -13,7 +13,11 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
 
     Optional<Tag> findByNomeIgnoreCase(String nome);
 
+    Optional<Tag> findBySlugIgnoreCase(String slug);
+
     boolean existsByNomeIgnoreCase(String nome);
+
+    boolean existsBySlugIgnoreCase(String slug);
 
     List<Tag> findByNomeContainingIgnoreCase(String termo);
 

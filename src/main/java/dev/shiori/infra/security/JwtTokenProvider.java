@@ -56,16 +56,26 @@ public class JwtTokenProvider {
     }
 
     public String gerarToken(Usuario usuario) {
+        return gerarToken(usuario, false);
+    }
+
+    public String gerarToken(Usuario usuario, boolean lembrarDeMim) {
         return gerarToken(
                 usuario.getId(),
                 usuario.getEmail(),
                 usuario.getRole() != null ? usuario.getRole().name() : "ROLE_USER",
-                usuario.isOnboardingConcluido());
+                usuario.isOnboardingConcluido(),
+                lembrarDeMim);
     }
 
     public String gerarToken(Long usuarioId, String email, String role, boolean onboardingConcluido) {
+        return gerarToken(usuarioId, email, role, onboardingConcluido, false);
+    }
+
+    public String gerarToken(Long usuarioId, String email, String role, boolean onboardingConcluido, boolean lembrarDeMim) {
         Date agora = new Date();
-        Date expiracao = new Date(agora.getTime() + expirationMs);
+        long tempoExpiracao = lembrarDeMim ? 30L * 24 * 60 * 60 * 1000 : expirationMs;
+        Date expiracao = new Date(agora.getTime() + tempoExpiracao);
 
         return Jwts.builder()
                 .subject(email)

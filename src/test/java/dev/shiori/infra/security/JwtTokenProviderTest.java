@@ -61,6 +61,24 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    @DisplayName("Deve gerar token com validade estendida de 30 dias quando lembrarDeMim for true")
+    void deveGerarTokenComValidadeEstendidaQuandoLembrarDeMim() {
+        Usuario usuario = new Usuario("persistente@shiori.dev", "senha123");
+        usuario.concluirOnboarding("leitor_persistente", "America/Sao_Paulo", null, "Bio");
+
+        String token = jwtTokenProvider.gerarToken(usuario, true);
+
+        assertThat(token).isNotBlank();
+        assertThat(jwtTokenProvider.validarToken(token)).isTrue();
+        assertThat(jwtTokenProvider.extrairEmail(token)).isEqualTo("persistente@shiori.dev");
+
+        // Verifica que o token expira no futuro distante (> 20 dias a partir de agora)
+        var claims = jwtTokenProvider.extrairClaims(token);
+        long diffMs = claims.getExpiration().getTime() - System.currentTimeMillis();
+        assertThat(diffMs).isGreaterThan(20L * 24 * 60 * 60 * 1000);
+    }
+
+    @Test
     @DisplayName("Deve falhar com erro fatal em ambiente de produção se chave for padrão ou insegura")
     void deveFalharEmProducaoComChaveInseguraOuPadrao() {
         System.setProperty("spring.profiles.active", "prod");

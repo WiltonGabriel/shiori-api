@@ -9,6 +9,11 @@ public record LoginRequest(
         String email,
 
         @NotBlank(message = "A senha é obrigatória")
-        String senha
+        String senha,
+
+        Boolean lembrarDeMim
 ) {
+    public LoginRequest(String email, String senha) {
+        this(email, senha, false);
+    }
 }

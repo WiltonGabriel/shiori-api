@@ -118,6 +118,39 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/login com lembrarDeMim deve emitir token válido e persistente")
+    void deveAutenticarComLembrarDeMim() throws Exception {
+        String jsonRegistro = """
+                {
+                    "email": "remember.me@shiori.dev",
+                    "senha": "senhaForte123",
+                    "apelido": "user_remember"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRegistro))
+                .andExpect(status().isCreated());
+
+        String jsonLogin = """
+                {
+                    "email": "remember.me@shiori.dev",
+                    "senha": "senhaForte123",
+                    "lembrarDeMim": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonLogin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.tipo").value("Bearer"))
+                .andExpect(jsonPath("$.email").value("remember.me@shiori.dev"));
+    }
+
+    @Test
     @DisplayName("GET /api/auth/me sem token deve retornar 401 Unauthorized com ProblemDetail")
     void deveRetornar401SemToken() throws Exception {
         mockMvc.perform(get("/api/auth/me"))

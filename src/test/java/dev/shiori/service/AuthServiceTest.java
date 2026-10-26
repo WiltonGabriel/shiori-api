@@ -107,6 +107,23 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Deve realizar login com sucesso e gerar token com validade estendida quando lembrarDeMim for true")
+    void deveRealizarLoginComLembrarDeMim() {
+        Usuario usuario = new Usuario("login@shiori.dev", "hashBcrypt");
+        LoginRequest request = new LoginRequest("login@shiori.dev", "senhaCorreta", true);
+
+        when(usuarioRepository.findByEmail("login@shiori.dev")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("senhaCorreta", "hashBcrypt")).thenReturn(true);
+        when(jwtTokenProvider.gerarToken(usuario, true)).thenReturn("jwt.persistent.token");
+
+        AuthResponse response = authService.login(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.token()).isEqualTo("jwt.persistent.token");
+        assertThat(response.email()).isEqualTo("login@shiori.dev");
+    }
+
+    @Test
     @DisplayName("Deve falhar no login com senha incorreta")
     void deveFalharLoginComSenhaIncorreta() {
         Usuario usuario = new Usuario("login@shiori.dev", "hashBcrypt");

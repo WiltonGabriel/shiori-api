@@ -78,7 +78,8 @@ public class AuthService {
             throw new RegraDeNegocioException("Esta conta foi desativada ou anonimizada");
         }
 
-        String token = jwtTokenProvider.gerarToken(usuario);
+        boolean lembrar = Boolean.TRUE.equals(request.lembrarDeMim());
+        String token = lembrar ? jwtTokenProvider.gerarToken(usuario, true) : jwtTokenProvider.gerarToken(usuario);
 
         return AuthResponse.of(
                 token,

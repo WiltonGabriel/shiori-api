@@ -16,7 +16,7 @@ public enum TipoObra {
     LIGHT_NOVEL("Light Novel"),
     WEB_NOVEL("Web Novel"),
     COMIC("Comic"),
-    LIVRO("Livro Tradicional"),
+    LIVRO("Livro"),
 
     /**
      * @deprecated Formato legado mantido para retrocompatibilidade com registros existentes no banco.

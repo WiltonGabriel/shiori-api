@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/broadcasts/ativos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/obras", "/obras/**", "/api/obras", "/api/obras/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/generos", "/generos/**", "/api/generos", "/api/generos/**").permitAll()
                         .requestMatchers("/api/hub/pareamento/**", "/api/federacao/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

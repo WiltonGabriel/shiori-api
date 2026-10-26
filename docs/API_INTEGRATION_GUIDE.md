@@ -137,7 +137,7 @@ Abaixo estão os endpoints fundamentais para quem deseja criar uma interface com
     - `tagsIncluidas` (lista de strings): Nomes ou slugs de tags a incluir.
     - `tagsModo` (`AND` ou `OR`, padrão `AND`): `AND` exige todas as tags; `OR` exige ao menos uma.
     - `tagsExcluidas` (lista de strings): Nomes ou slugs de tags proibidas (exclusão estrita `NOT`).
-    - `ordenacao` (enum, padrão `NOTA_DESC`): `NOTA_DESC`, `NOTA_ASC`, `CAPITULOS_DESC`, `CAPITULOS_ASC`, `TITULO_ASC`, `TITULO_DESC`, `RECENTES`, `ANTIGAS`.
+    - `ordenacao` (enum, padrão `NOTA_DESC`): `NOTA_DESC`, `NOTA_ASC`, `CAPITULOS_DESC`, `CAPITULOS_ASC`, `TITULO_ASC`, `TITULO_DESC`, `RECENTES` (ordem aproximada de inserção no acervo via ID decrescente), `ANTIGAS` (ID crescente). Todas as ordenações utilizam amarração secundária estável para evitar paginações inconsistentes.
     - `pagina` (inteiro >= 0, padrão 0): Índice da página requisitada.
     - `itensPorPagina` (inteiro de 1 a 50, padrão 20): Quantidade de itens por página.
   - **Resposta Sucesso (200 OK):**

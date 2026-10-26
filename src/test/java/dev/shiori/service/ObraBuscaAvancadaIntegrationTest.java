@@ -329,4 +329,99 @@ class ObraBuscaAvancadaIntegrationTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(5));
     }
+
+    @Test
+    @DisplayName("Blindagem de Segurança: Obras PRIVADAS não podem ser expostas na busca pública mesmo com parâmetro manipulado")
+    void deveBloquearExposicaoDeObrasPrivadasMesmoComParametroManipulado() throws Exception {
+        // Criar uma obra privada no banco
+        Obra obraPrivada = new Obra("Diário Secreto Privado", null, null, "Anotações pessoais", 10, TipoObra.LIVRO);
+        obraPrivada.tornarPrivada();
+        obraRepository.save(obraPrivada);
+
+        // 1. Busca padrão sem parâmetros de catálogo não deve listar a obra privada
+        ObraBuscaAvancadaFiltro filtroPadrao = new ObraBuscaAvancadaFiltro(
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, 0, 20
+        );
+        Page<ObraResponse> resPadrao = obraService.buscarObrasAvancada(filtroPadrao);
+        assertThat(resPadrao.getContent()).extracting(ObraResponse::tituloPrincipal)
+                .doesNotContain("Diário Secreto Privado");
+
+        // 2. Manipulação de query param forçando statusCatalogo=PRIVADO via HTTP MockMvc
+        mockMvc.perform(get("/api/obras/busca-avancada")
+                        .param("statusCatalogo", "PRIVADO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Resiliência a maiúsculas, minúsculas e acentos em gêneros e tags")
+    void deveLocalizarGenerosETagsIndependentementeDeMaiusculasMinusculasEAcentos() {
+        // Busca usando nome com acento e caixa alta "AÇÃO"
+        ObraBuscaAvancadaFiltro comAcento = new ObraBuscaAvancadaFiltro(
+                null, null, null, null, null, null, null, null,
+                Set.of("AÇÃO"), ModoFiltroColecao.AND, null, null, null, null,
+                OrdenacaoObra.TITULO_ASC, 0, 10
+        );
+        Page<ObraResponse> res1 = obraService.buscarObrasAvancada(comAcento);
+        assertThat(res1.getContent()).extracting(ObraResponse::tituloPrincipal)
+                .containsExactly("Omniscient Reader's Viewpoint", "Solo Leveling");
+
+        // Busca usando slug sem acento e em minúsculas "acao"
+        ObraBuscaAvancadaFiltro semAcento = new ObraBuscaAvancadaFiltro(
+                null, null, null, null, null, null, null, null,
+                Set.of("acao"), ModoFiltroColecao.AND, null, null, null, null,
+                OrdenacaoObra.TITULO_ASC, 0, 10
+        );
+        Page<ObraResponse> res2 = obraService.buscarObrasAvancada(semAcento);
+        assertThat(res2.getContent()).extracting(ObraResponse::tituloPrincipal)
+                .containsExactly("Omniscient Reader's Viewpoint", "Solo Leveling");
+    }
+
+    @Test
+    @DisplayName("Contagem da paginação (totalElements) exata com filtros combinados complexos")
+    void deveValidarTotalElementsDaContagemDePaginacaoComFiltrosCombinados() {
+        // Filtro combinado: MANHWA + Ação + minCapitulos=150
+        ObraBuscaAvancadaFiltro filtro = new ObraBuscaAvancadaFiltro(
+                null, Set.of(TipoObra.MANHWA), null, null, 150, null, null, null,
+                Set.of("Ação"), ModoFiltroColecao.AND, null, null, null, null,
+                OrdenacaoObra.NOTA_DESC, 0, 1
+        );
+        Page<ObraResponse> res = obraService.buscarObrasAvancada(filtro);
+
+        assertThat(res.getContent()).hasSize(1);
+        assertThat(res.getTotalElements()).isEqualTo(2); // Existem 2 obras no total (Omniscient e Solo), mesmo pedindo página com 1 item
+        assertThat(res.getTotalPages()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Validação de parâmetros inválidos deve retornar HTTP 400 com RFC 9457 ProblemDetail")
+    void deveRetornarHttp400ComProblemDetailParaParametrosInvalidos() throws Exception {
+        // 1. Capítulos mínimos negativos
+        mockMvc.perform(get("/api/obras/busca-avancada").param("minCapitulos", "-5"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://shiori.dev/erros/regra-de-negocio"))
+                .andExpect(jsonPath("$.title").value("Regra de Negócio Violada"))
+                .andExpect(jsonPath("$.detail").value("O número mínimo de capítulos não pode ser negativo"));
+
+        // 2. Intervalo de capítulos invertido
+        mockMvc.perform(get("/api/obras/busca-avancada").param("minCapitulos", "100").param("maxCapitulos", "50"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://shiori.dev/erros/regra-de-negocio"))
+                .andExpect(jsonPath("$.detail").value("O número mínimo de capítulos não pode ser maior que o máximo"));
+
+        // 3. Nota fora do intervalo
+        mockMvc.perform(get("/api/obras/busca-avancada").param("minNota", "15.0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://shiori.dev/erros/regra-de-negocio"))
+                .andExpect(jsonPath("$.detail").value("A nota mínima deve estar entre 0.0 e 10.0"));
+
+        // 4. Parâmetro com tipo incompatível (ex: string onde se espera enum ou int)
+        mockMvc.perform(get("/api/obras/busca-avancada").param("minCapitulos", "nao_sou_um_numero"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("https://shiori.dev/erros/validacao-campos"))
+                .andExpect(jsonPath("$.title").value("Dados de Entrada Inválidos"));
+    }
 }

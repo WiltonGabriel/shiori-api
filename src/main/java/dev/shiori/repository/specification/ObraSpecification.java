@@ -1,8 +1,11 @@
 package dev.shiori.repository.specification;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,6 +30,13 @@ import jakarta.persistence.criteria.Subquery;
  * ManyToMany (gêneros e tags) não multipliquem linhas ou quebrem a paginação SQL.
  */
 public final class ObraSpecification {
+
+    private static final Pattern NON_LATIN = Pattern.compile("[^\\w-]");
+    private static final Pattern WHITESPACE = Pattern.compile("[\\s]+");
+    private static final Set<StatusCatalogo> STATUS_PUBLICOS_PERMITIDOS = Set.of(
+            StatusCatalogo.OFICIAL,
+            StatusCatalogo.COMUNITARIO
+    );
 
     private ObraSpecification() {
     }
@@ -56,11 +66,19 @@ public final class ObraSpecification {
                 predicates.add(root.get("statusPublicacao").in(filtro.status()));
             }
 
-            // 4. Status de Catálogo (Default defensivo: OFICIAL e COMUNITARIO)
+            // 4. Status de Catálogo (Blindagem de Segurança: Obras PRIVADAS nunca são expostas na busca pública)
             if (filtro.statusCatalogo() != null && !filtro.statusCatalogo().isEmpty()) {
-                predicates.add(root.get("statusCatalogo").in(filtro.statusCatalogo()));
+                Set<StatusCatalogo> statusFiltrados = filtro.statusCatalogo().stream()
+                        .filter(STATUS_PUBLICOS_PERMITIDOS::contains)
+                        .collect(Collectors.toSet());
+                if (statusFiltrados.isEmpty()) {
+                    // Usuário tentou consultar exclusivamente status restritos (ex: PRIVADO). Bloqueio imediato via disjunction (1=0).
+                    predicates.add(builder.disjunction());
+                } else {
+                    predicates.add(root.get("statusCatalogo").in(statusFiltrados));
+                }
             } else {
-                predicates.add(root.get("statusCatalogo").in(Set.of(StatusCatalogo.OFICIAL, StatusCatalogo.COMUNITARIO)));
+                predicates.add(root.get("statusCatalogo").in(STATUS_PUBLICOS_PERMITIDOS));
             }
 
             // 5. Intervalo de Capítulos
@@ -171,18 +189,27 @@ public final class ObraSpecification {
         };
     }
 
+    private static String normalizarSlug(String input) {
+        String nowhitespace = WHITESPACE.matcher(input.trim().toLowerCase()).replaceAll("-");
+        String normalized = Normalizer.normalize(nowhitespace, Normalizer.Form.NFD);
+        String slug = NON_LATIN.matcher(normalized).replaceAll("");
+        return slug.replaceAll("-+", "-");
+    }
+
     private static Subquery<Integer> criarSubqueryGenero(Root<Obra> root, CriteriaQuery<?> query, CriteriaBuilder builder, String termo) {
         Subquery<Integer> subquery = query.subquery(Integer.class);
         Root<Obra> subObra = subquery.from(Obra.class);
         Join<Obra, Genero> joinGenero = subObra.join("generos");
-        String termoLower = termo.toLowerCase();
+        String termoTrim = termo.trim().toLowerCase();
+        String slugNormalizado = normalizarSlug(termoTrim);
 
         subquery.select(builder.literal(1))
                 .where(
                         builder.equal(subObra.get("id"), root.get("id")),
                         builder.or(
-                                builder.equal(builder.lower(joinGenero.get("slug")), termoLower),
-                                builder.equal(builder.lower(joinGenero.get("nome")), termoLower)
+                                builder.equal(builder.lower(joinGenero.get("slug")), termoTrim),
+                                builder.equal(builder.lower(joinGenero.get("slug")), slugNormalizado),
+                                builder.equal(builder.lower(joinGenero.get("nome")), termoTrim)
                         )
                 );
         return subquery;
@@ -192,14 +219,16 @@ public final class ObraSpecification {
         Subquery<Integer> subquery = query.subquery(Integer.class);
         Root<Obra> subObra = subquery.from(Obra.class);
         Join<Obra, Tag> joinTag = subObra.join("tags");
-        String termoLower = termo.toLowerCase();
+        String termoTrim = termo.trim().toLowerCase();
+        String slugNormalizado = normalizarSlug(termoTrim);
 
         subquery.select(builder.literal(1))
                 .where(
                         builder.equal(subObra.get("id"), root.get("id")),
                         builder.or(
-                                builder.equal(builder.lower(joinTag.get("slug")), termoLower),
-                                builder.equal(builder.lower(joinTag.get("nome")), termoLower)
+                                builder.equal(builder.lower(joinTag.get("slug")), termoTrim),
+                                builder.equal(builder.lower(joinTag.get("slug")), slugNormalizado),
+                                builder.equal(builder.lower(joinTag.get("nome")), termoTrim)
                         )
                 );
         return subquery;

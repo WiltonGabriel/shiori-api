@@ -59,4 +59,30 @@ class JwtTokenProviderTest {
 
         assertThat(providerExpirado.validarToken(token)).isFalse();
     }
+
+    @Test
+    @DisplayName("Deve falhar com erro fatal em ambiente de produção se chave for padrão ou insegura")
+    void deveFalharEmProducaoComChaveInseguraOuPadrao() {
+        System.setProperty("spring.profiles.active", "prod");
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> {
+                new JwtTokenProvider(JwtTokenProvider.DEFAULT_SECRET, expirationMs);
+            });
+
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> {
+                new JwtTokenProvider("curta", expirationMs);
+            });
+
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> {
+                new JwtTokenProvider("", expirationMs);
+            });
+
+            // Com chave segura de 32+ bytes em produção deve instanciar com sucesso
+            String chaveProducaoValida = "ChaveSeguraDeProducaoComMaisDe32CaracteresHexOuTexto!";
+            JwtTokenProvider providerProd = new JwtTokenProvider(chaveProducaoValida, expirationMs);
+            assertThat(providerProd).isNotNull();
+        } finally {
+            System.clearProperty("spring.profiles.active");
+        }
+    }
 }

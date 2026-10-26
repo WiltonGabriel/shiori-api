@@ -61,7 +61,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/registrar", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/registrar", "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/broadcasts/ativos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/obras", "/obras/**", "/api/obras", "/api/obras/**").permitAll()

@@ -5,6 +5,8 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,9 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtTokenProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
+    public static final String DEFAULT_SECRET = "ShioriUltraSecretJwtSigningKeyWithAtLeast256BitsLengthForHmacSha256Security!";
+
     private final long expirationMs;
     private final SecretKey key;
 
@@ -27,8 +32,27 @@ public class JwtTokenProvider {
     }
 
     public JwtTokenProvider(String secret, long expirationMs) {
+        validarChaveSegura(secret);
         this.expirationMs = expirationMs;
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void validarChaveSegura(String secret) {
+        if (isAmbienteProducao()) {
+            if (secret == null || secret.isBlank() || DEFAULT_SECRET.equals(secret) || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+                throw new IllegalStateException("ERRO_FATAL_SEGURANCA: A chave JWT (JWT_SECRET ou SHIORI_JWT_SECRET) é obrigatória, não pode ser a padrão e deve conter pelo menos 32 caracteres (256 bits) em ambiente de produção!");
+            }
+        } else if (DEFAULT_SECRET.equals(secret)) {
+            log.warn("AVISO_SEGURANCA: Usando chave JWT padrão para desenvolvimento/testes. Em produção, defina JWT_SECRET.");
+        }
+    }
+
+    private static boolean isAmbienteProducao() {
+        String profile = System.getenv("SPRING_PROFILES_ACTIVE");
+        if (profile == null || profile.isBlank()) {
+            profile = System.getProperty("spring.profiles.active");
+        }
+        return profile != null && (profile.equalsIgnoreCase("prod") || profile.equalsIgnoreCase("production"));
     }
 
     public String gerarToken(Usuario usuario) {

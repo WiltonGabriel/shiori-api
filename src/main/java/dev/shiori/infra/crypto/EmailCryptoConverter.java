@@ -15,16 +15,21 @@ import jakarta.persistence.Converter;
 @Converter
 public class EmailCryptoConverter implements AttributeConverter<String, String> {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EmailCryptoConverter.class);
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
     private static final String SECRET_KEY_DEFAULT = "ShioriLgpdSecureAes256SecretKey!"; // 32 bytes = 256 bits
 
     private final byte[] keyBytes;
 
     public EmailCryptoConverter() {
-        String envKey = System.getenv("SHIORI_CRYPTO_KEY");
+        String envKey = resolverChaveAmbiente();
         if (envKey != null && !envKey.isBlank()) {
             this.keyBytes = gerarChave32Bytes(envKey.trim());
         } else {
+            if (isAmbienteProducao()) {
+                throw new IllegalStateException("ERRO_FATAL_SEGURANCA: A chave de criptografia SHIORI_CRYPTO_KEY (ou SHIORI_CRYPTO_SECRET_KEY) é obrigatória em ambiente de produção!");
+            }
+            log.warn("AVISO_SEGURANCA: SHIORI_CRYPTO_KEY não configurada. Usando chave padrão para desenvolvimento local/testes.");
             this.keyBytes = SECRET_KEY_DEFAULT.getBytes(StandardCharsets.UTF_8);
         }
     }
@@ -35,6 +40,28 @@ public class EmailCryptoConverter implements AttributeConverter<String, String> 
         } else {
             this.keyBytes = gerarChave32Bytes(chaveSecreta.trim());
         }
+    }
+
+    private static String resolverChaveAmbiente() {
+        String key = System.getenv("SHIORI_CRYPTO_KEY");
+        if (key == null || key.isBlank()) {
+            key = System.getenv("SHIORI_CRYPTO_SECRET_KEY");
+        }
+        if (key == null || key.isBlank()) {
+            key = System.getProperty("shiori.crypto.key");
+        }
+        if (key == null || key.isBlank()) {
+            key = System.getProperty("SHIORI_CRYPTO_KEY");
+        }
+        return key;
+    }
+
+    private static boolean isAmbienteProducao() {
+        String profile = System.getenv("SPRING_PROFILES_ACTIVE");
+        if (profile == null || profile.isBlank()) {
+            profile = System.getProperty("spring.profiles.active");
+        }
+        return profile != null && (profile.equalsIgnoreCase("prod") || profile.equalsIgnoreCase("production"));
     }
 
     private static byte[] gerarChave32Bytes(String input) {

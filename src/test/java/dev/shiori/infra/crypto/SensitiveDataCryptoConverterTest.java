@@ -49,4 +49,28 @@ class SensitiveDataCryptoConverterTest {
         assertThat(converter.convertToEntityAttribute(null)).isNull();
         assertThat(converter.convertToEntityAttribute("")).isEqualTo("");
     }
+
+    @Test
+    @DisplayName("Deve inicializar com construtor padrão e resolver chave com sucesso")
+    void deveInicializarComConstrutorPadrao() {
+        SensitiveDataCryptoConverter defaultConverter = new SensitiveDataCryptoConverter();
+        String texto = "https://leitor.dev/capitulo/1";
+        String cifrado = defaultConverter.convertToDatabaseColumn(texto);
+        assertThat(cifrado).isNotNull().isNotEqualTo(texto);
+        assertThat(defaultConverter.convertToEntityAttribute(cifrado)).isEqualTo(texto);
+    }
+
+    @Test
+    @DisplayName("Deve inicializar com chave provida por propriedade do sistema shiori.crypto.key")
+    void deveInicializarComPropriedadeDoSistema() {
+        System.setProperty("shiori.crypto.key", "ChaveCustomizadaSystemProperty12345");
+        try {
+            SensitiveDataCryptoConverter propConverter = new SensitiveDataCryptoConverter();
+            String texto = "dado-sensivel-teste";
+            String cifrado = propConverter.convertToDatabaseColumn(texto);
+            assertThat(propConverter.convertToEntityAttribute(cifrado)).isEqualTo(texto);
+        } finally {
+            System.clearProperty("shiori.crypto.key");
+        }
+    }
 }

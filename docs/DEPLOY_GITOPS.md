@@ -20,7 +20,7 @@ O ecossistema Shiori adota o modelo **GitOps**:
 > **POLÍTICA ESTRITA DE ACESSO OPERACIONAL AO SERVIDOR DE PRODUÇÃO:**
 >
 > 1. **Ambiente de Produção Gerenciado por GitOps:** O ambiente de produção opera sob automação estrita via **Portainer**.
-> 2. **Acesso SSH Restrito:** O acesso direto via SSH ao servidor (através da malha de rede privada Tailscale no host `ubuntu@100.127.79.49`) é **estritamente restrito a fins de auditoria de infraestrutura, inspeção de logs e gerenciamento de containers** no diretório de serviços `/srv/services/shiori`.
+> 2. **Acesso SSH Restrito:** O acesso direto via SSH ao servidor (no host `usuario@seu-servidor-ip`) é **estritamente restrito a fins de auditoria de infraestrutura, inspeção de logs e gerenciamento de containers** no diretório de serviços do projeto.
 > 3. **Proibição de Alterações Manuais:** É terminantemente proibido editar código-fonte, alterar arquivos de runtime ou aplicar "hotfixes" diretamente no servidor de produção. **Toda e qualquer alteração de código deve ser submetida via commit no repositório GitHub e passar obrigatoriamente pelos testes automatizados e pela esteira do GitHub Actions.**
 
 ---

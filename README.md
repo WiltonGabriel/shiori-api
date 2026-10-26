@@ -124,7 +124,7 @@ Documentos detalhados estão disponíveis na pasta [`docs/`](docs/):
 ## 🛡️ Infraestrutura e Acesso Operacional
 
 - **Esteira GitOps:** As implantações em produção são automatizadas pelo **Portainer** acionado pela esteira do GitHub Actions a cada commit na branch `main`.
-- **Acesso SSH Restrito:** O acesso operacional via SSH (`ubuntu@100.127.79.49` via Tailscale) é estritamente restrito para auditoria de infraestrutura e gestão de containers em `/srv/services/shiori`. Nenhuma modificação manual de código é permitida diretamente em produção.
+- **Acesso SSH Restrito:** O acesso operacional via SSH (`usuario@seu-servidor-ip`) é estritamente restrito para auditoria de infraestrutura e gestão de containers. Nenhuma modificação manual de código é permitida diretamente em produção.
 
 ---
 

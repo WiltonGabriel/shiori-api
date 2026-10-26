@@ -63,4 +63,28 @@ class EmailCryptoConverterTest {
         assertThat(cifraPadrao).isNotEqualTo(cifraCustom);
         assertThat(customConverter.convertToEntityAttribute(cifraCustom)).isEqualTo(email);
     }
+
+    @Test
+    @DisplayName("Deve inicializar com construtor padrão e resolver chave com sucesso")
+    void deveInicializarComConstrutorPadrao() {
+        EmailCryptoConverter defaultConverter = new EmailCryptoConverter();
+        String email = "default-teste@shiori.dev";
+        String cifrado = defaultConverter.convertToDatabaseColumn(email);
+        assertThat(cifrado).isNotNull().isNotEqualTo(email);
+        assertThat(defaultConverter.convertToEntityAttribute(cifrado)).isEqualTo(email);
+    }
+
+    @Test
+    @DisplayName("Deve inicializar com chave provida por propriedade do sistema shiori.crypto.key")
+    void deveInicializarComPropriedadeDoSistema() {
+        System.setProperty("shiori.crypto.key", "EmailSystemPropertyKey1234567890!");
+        try {
+            EmailCryptoConverter propConverter = new EmailCryptoConverter();
+            String email = "prop-teste@shiori.dev";
+            String cifrado = propConverter.convertToDatabaseColumn(email);
+            assertThat(propConverter.convertToEntityAttribute(cifrado)).isEqualTo(email);
+        } finally {
+            System.clearProperty("shiori.crypto.key");
+        }
+    }
 }

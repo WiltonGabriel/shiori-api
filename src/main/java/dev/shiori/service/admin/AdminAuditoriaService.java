@@ -47,6 +47,19 @@ public class AdminAuditoriaService {
         return admin;
     }
 
+    public Usuario obterEValidarCuradorOuAdmin(Long operadorId) {
+        if (operadorId == null) {
+            throw new RegraDeNegocioException("ID do operador não informado");
+        }
+        Usuario operador = usuarioRepository.findById(operadorId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário operador não encontrado: ID " + operadorId));
+
+        if (!operador.isCurador()) {
+            throw new RegraDeNegocioException("Acesso negado: operação restrita a curadores ou administradores");
+        }
+        return operador;
+    }
+
     public void registrarAuditoria(Usuario admin, String acao, String entidadeAfetada, String entidadeId, String detalhes) {
         RegistroAuditoria registro = new RegistroAuditoria(
                 admin.getId(),

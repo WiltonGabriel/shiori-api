@@ -23,7 +23,7 @@ class FlywayPostgresMigrationIntegrationTest {
     private final String password = "shiori";
 
     @Test
-    @DisplayName("Deve executar migração V1 com sucesso em banco PostgreSQL e validar histórico")
+    @DisplayName("Deve executar migrações Flyway (V1 e V2) com sucesso em banco PostgreSQL e validar histórico")
     void deveExecutarMigracaoV1ComSucessoEmPostgres() throws Exception {
         // 1. Limpar schema public antes do teste
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
@@ -39,17 +39,25 @@ class FlywayPostgresMigrationIntegrationTest {
                 .baselineVersion("1")
                 .load();
 
-        // 3. Executar migração V1
+        // 3. Executar migrações
         MigrateResult result = flyway.migrate();
         assertThat(result.success).isTrue();
-        assertThat(result.migrationsExecuted).isGreaterThanOrEqualTo(1);
+        assertThat(result.migrationsExecuted).isGreaterThanOrEqualTo(2);
 
-        // 4. Verificar tabela de histórico do Flyway
+        // 4. Verificar tabela de histórico do Flyway (V1 e V2)
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT version, description, success FROM flyway_schema_history WHERE version = '1'")) {
             assertThat(rs.next()).isTrue();
             assertThat(rs.getString("description")).isEqualTo("schema inicial shiori");
+            assertThat(rs.getBoolean("success")).isTrue();
+        }
+
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT version, description, success FROM flyway_schema_history WHERE version = '2'")) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString("description")).isEqualTo("governanca sugestoes tags");
             assertThat(rs.getBoolean("success")).isTrue();
         }
 
@@ -63,6 +71,10 @@ class FlywayPostgresMigrationIntegrationTest {
             ResultSet rsObras = stmt.executeQuery("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tb_obra'");
             assertThat(rsObras.next()).isTrue();
             assertThat(rsObras.getInt(1)).isEqualTo(1);
+
+            ResultSet rsSugestoes = stmt.executeQuery("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'tb_sugestao_tag_obra'");
+            assertThat(rsSugestoes.next()).isTrue();
+            assertThat(rsSugestoes.getInt(1)).isEqualTo(1);
         }
 
         // 6. Idempotência: rodar novamente não deve falhar nem reaplicar

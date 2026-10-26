@@ -29,6 +29,7 @@ import dev.shiori.domain.model.PareamentoInstancia;
 import dev.shiori.domain.model.ProvedorIntegracao;
 import dev.shiori.domain.model.RegistroAuditoria;
 import dev.shiori.domain.model.SugestaoEdicaoObra;
+import dev.shiori.domain.model.SugestaoTagObra;
 import dev.shiori.domain.model.Tag;
 import dev.shiori.domain.model.Usuario;
 import dev.shiori.domain.model.VotoTag;
@@ -73,6 +74,7 @@ class HibernateSchemaValidationIntegrationTest {
             sources.addAnnotatedClass(NoFederado.class);
             sources.addAnnotatedClass(FeatureFlag.class);
             sources.addAnnotatedClass(VotoTag.class);
+            sources.addAnnotatedClass(SugestaoTagObra.class);
 
             var metadata = sources.buildMetadata();
             SchemaManagementToolCoordinator.process(
@@ -82,7 +84,7 @@ class HibernateSchemaValidationIntegrationTest {
                     null
             );
 
-            assertThat(metadata.getEntityBindings()).hasSize(20);
+            assertThat(metadata.getEntityBindings()).hasSize(21);
         } finally {
             StandardServiceRegistryBuilder.destroy(registry);
         }

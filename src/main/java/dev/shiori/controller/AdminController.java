@@ -44,21 +44,27 @@ import dev.shiori.dto.admin.ProvedorIntegracaoResponse;
 import dev.shiori.dto.admin.RegistroAuditoriaResponse;
 import dev.shiori.dto.admin.SalvarProvedorIntegracaoRequest;
 import dev.shiori.dto.admin.SugestaoEdicaoResponse;
+import dev.shiori.dto.tag.AvaliarSugestaoTagRequest;
+import dev.shiori.dto.tag.SugestaoTagAdminResponse;
+import dev.shiori.domain.enums.StatusSugestaoTag;
 import dev.shiori.infra.integration.IntegracaoMetadadosObra;
 import dev.shiori.infra.security.CurrentUser;
 import dev.shiori.infra.security.UsuarioPrincipal;
 import dev.shiori.service.AdminService;
+import dev.shiori.service.TagService;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'CURADOR')")
 public class AdminController {
 
     private final AdminService adminService;
+    private final TagService tagService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, TagService tagService) {
         this.adminService = adminService;
+        this.tagService = tagService;
     }
 
     // ==========================================
@@ -176,6 +182,32 @@ public class AdminController {
             @CurrentUser UsuarioPrincipal adminLogado,
             @Valid @RequestBody MesclarTagsRequest request) {
         MesclarTagsResponse response = adminService.mesclarTags(request, adminLogado.getId());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tags/sugestoes")
+    public ResponseEntity<Page<SugestaoTagAdminResponse>> listarSugestoesTags(
+            @CurrentUser UsuarioPrincipal adminLogado,
+            @RequestParam(required = false) StatusSugestaoTag status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<SugestaoTagAdminResponse> sugestoes = tagService.listarSugestoes(status, pageable, adminLogado.getId());
+        return ResponseEntity.ok(sugestoes);
+    }
+
+    @PostMapping("/tags/sugestoes/{id}/aprovar")
+    public ResponseEntity<SugestaoTagAdminResponse> aprovarSugestaoTag(
+            @CurrentUser UsuarioPrincipal adminLogado,
+            @PathVariable Long id) {
+        SugestaoTagAdminResponse response = tagService.aprovarSugestao(id, adminLogado.getId());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/tags/sugestoes/{id}/rejeitar")
+    public ResponseEntity<SugestaoTagAdminResponse> rejeitarSugestaoTag(
+            @CurrentUser UsuarioPrincipal adminLogado,
+            @PathVariable Long id,
+            @Valid @RequestBody AvaliarSugestaoTagRequest request) {
+        SugestaoTagAdminResponse response = tagService.rejeitarSugestao(id, adminLogado.getId(), request.motivo());
         return ResponseEntity.ok(response);
     }
 

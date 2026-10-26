@@ -14,6 +14,10 @@ public interface VotoTagRepository extends JpaRepository<VotoTag, Long> {
 
     List<VotoTag> findByTagId(Long tagId);
 
+    List<VotoTag> findByObraId(Long obraId);
+
+    List<VotoTag> findByObraIdAndTagId(Long obraId, Long tagId);
+
     Optional<VotoTag> findByUsuarioIdAndTagIdAndObraId(Long usuarioId, Long tagId, Long obraId);
 
     @Modifying

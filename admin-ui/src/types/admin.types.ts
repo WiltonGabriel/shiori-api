@@ -166,3 +166,40 @@ export interface AppInfoResponse {
   build?: { version?: string; time?: string };
   git?: { commit?: { id?: string } };
 }
+
+export interface SugestaoTagAdminResponse {
+  id: number;
+  obraId: number;
+  obraTitulo: string;
+  tagId?: number | null;
+  nomeTag: string;
+  slugTag: string;
+  status: 'PENDENTE' | 'APROVADA' | 'REJEITADA';
+  usuarioSugeridorApelido: string;
+  justificativa?: string | null;
+  dataSugestao: string;
+  adminAvaliadorApelido?: string | null;
+  dataAvaliacao?: string | null;
+  motivoRejeicao?: string | null;
+}
+
+export interface TagObraResponse {
+  tagId: number;
+  nome: string;
+  slug: string;
+  score: number;
+  meuVoto?: 'POSITIVO' | 'NEGATIVO' | null;
+}
+
+export interface ObraBuscaAvancadaFiltro {
+  termo?: string;
+  tipos?: string[];
+  status?: string[];
+  ordenacao?: 'NOTA_DESC' | 'NOTA_ASC' | 'CAPITULOS_DESC' | 'CAPITULOS_ASC' | 'TITULO_ASC' | 'TITULO_DESC' | 'RECENTES' | 'ANTIGAS';
+  minNota?: number;
+  maxNota?: number;
+  minCapitulos?: number;
+  maxCapitulos?: number;
+  pagina?: number;
+  itensPorPagina?: number;
+}

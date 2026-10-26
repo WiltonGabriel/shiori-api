@@ -71,12 +71,12 @@ Os arquivos otimizados e versionados serão gerados diretamente em `../src/main/
 | **Dashboard** | `GET /api/admin/dashboard`, `GET /actuator/health` | Métricas gerais de obras, edições, usuários, relatórios pendentes, status dos serviços e saúde da instância. |
 | **Integrações** | `GET/POST /api/admin/integracoes/**` | Gerenciamento dos provedores bibliográficos (AniList, Kitsu, MangaDex, OpenLibrary), ativação/desativação e ferramenta interativa de busca externa ao vivo. |
 | **Configurações** | `GET/PATCH /api/admin/configs/feature-flags` | Gerenciamento de Feature Flags com exigência de justificativa de auditoria obrigatória. |
-| **Catálogo** | `GET/POST /api/admin/curadoria/**` | Busca profunda de obras, oficialização, override de metadados, merge de obras duplicadas, gerenciamento de gêneros e fusão de tags comunitárias. |
-| **Moderação** | `GET/POST /api/admin/moderacao/**` | Fila de relatórios de comentários abusivos, denúncias de direitos autorais de obras e revisão com diff de sugestões comunitárias de edição. |
+| **Catálogo** | `GET/POST /api/admin/curadoria/**`, `GET /api/obras/busca-avancada`, `GET /api/tags/obras/{id}` | Busca avançada com filtros (tipo, status, ordenação estável), visualização de tags comunitárias com scores de relevância, oficialização, override de metadados, merge de obras duplicadas e gêneros. |
+| **Moderação** | `GET/POST /api/admin/tags/sugestoes/**`, `GET/PUT /api/admin/sugestoes/**`, `GET/PUT /api/admin/denuncias/**` | Governança de tags comunitárias (aprovação direta e rejeição com justificativa obrigatória), denúncias de comentários abusivos, denúncias de copyright e revisão com diff de sugestões de edição. |
 | **Usuários** | `GET/PUT /api/admin/usuarios/**` | Listagem paginada, atribuição de cargos (`ROLE_ADMIN`, `ROLE_CURADOR`, `ROLE_MODERADOR`, `ROLE_LEITOR`), aplicação de advertências (strikes), suspensões temporárias e banimento. |
 | **Broadcasts** | `GET/POST/DELETE /api/admin/broadcasts/**` | Criação, acompanhamento e desativação de comunicados globais do sistema. |
 | **Federação** | `GET/POST /api/admin/federacao/**` | Gestão dos nós da malha federada e aprovação/rejeição de pedidos de pareamento (handshakes). |
-| **Auditoria** | `GET /api/admin/auditoria` | Trilha de auditoria administrativa completa com filtro por ação, módulo e identificador de registro. |
+| **Auditoria** | `GET /api/admin/auditoria` | Trilha de auditoria administrativa completa com filtro por categoria (Tags, Catálogo, Usuários, Configurações), badges semânticos e identificador de registro. |
 
 ---
 

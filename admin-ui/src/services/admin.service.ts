@@ -17,6 +17,9 @@ import type {
   HealthCheckResponse,
   AppInfoResponse,
   AuthResponse,
+  SugestaoTagAdminResponse,
+  TagObraResponse,
+  ObraBuscaAvancadaFiltro,
 } from '../types/admin.types';
 
 export const AdminService = {
@@ -119,6 +122,27 @@ export const AdminService = {
     return request<PageResponse<ObraResponse>>(`/api/obras?page=${page}&size=${size}${q}`);
   },
 
+  buscarObrasAvancada(filtro: ObraBuscaAvancadaFiltro): Promise<PageResponse<ObraResponse>> {
+    const params = new URLSearchParams();
+    if (filtro.termo) params.append('termo', filtro.termo);
+    if (filtro.tipos?.length) filtro.tipos.forEach(t => params.append('tipos', t));
+    if (filtro.status?.length) filtro.status.forEach(s => params.append('status', s));
+    if (filtro.ordenacao) params.append('ordenacao', filtro.ordenacao);
+    if (filtro.minCapitulos !== undefined) params.append('minCapitulos', String(filtro.minCapitulos));
+    if (filtro.maxCapitulos !== undefined) params.append('maxCapitulos', String(filtro.maxCapitulos));
+    if (filtro.minNota !== undefined) params.append('minNota', String(filtro.minNota));
+    if (filtro.maxNota !== undefined) params.append('maxNota', String(filtro.maxNota));
+    if (filtro.pagina !== undefined) params.append('pagina', String(filtro.pagina));
+    if (filtro.itensPorPagina !== undefined) params.append('itensPorPagina', String(filtro.itensPorPagina));
+
+    const qs = params.toString();
+    return request<PageResponse<ObraResponse>>(`/api/obras/busca-avancada${qs ? `?${qs}` : ''}`);
+  },
+
+  listarTagsDaObra(obraId: number): Promise<TagObraResponse[]> {
+    return request<TagObraResponse[]>(`/api/tags/obras/${obraId}`);
+  },
+
   mesclarObras(idObraPrincipal: number, idObraDuplicada: number): Promise<any> {
     return request<any>('/api/admin/obras/mesclar', {
       method: 'POST',
@@ -208,6 +232,25 @@ export const AdminService = {
     return request<DenunciaObraResponse>(`/api/admin/denuncias/obras/${id}/rejeitar`, {
       method: 'PUT',
       body: JSON.stringify({ parecer }),
+    });
+  },
+
+  // Governança de Tags Comunitárias (Incremento 2.2)
+  listarSugestoesTags(status?: string, page: number = 0, size: number = 20): Promise<PageResponse<SugestaoTagAdminResponse>> {
+    const statusParam = status && status !== 'TODAS' ? `&status=${status}` : '';
+    return request<PageResponse<SugestaoTagAdminResponse>>(`/api/admin/tags/sugestoes?page=${page}&size=${size}${statusParam}`);
+  },
+
+  aprovarSugestaoTag(id: number): Promise<SugestaoTagAdminResponse> {
+    return request<SugestaoTagAdminResponse>(`/api/admin/tags/sugestoes/${id}/aprovar`, {
+      method: 'POST',
+    });
+  },
+
+  rejeitarSugestaoTag(id: number, motivo: string): Promise<SugestaoTagAdminResponse> {
+    return request<SugestaoTagAdminResponse>(`/api/admin/tags/sugestoes/${id}/rejeitar`, {
+      method: 'POST',
+      body: JSON.stringify({ motivo }),
     });
   },
 

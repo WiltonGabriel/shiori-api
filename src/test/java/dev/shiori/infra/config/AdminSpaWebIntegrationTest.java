@@ -77,7 +77,7 @@ class AdminSpaWebIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/css"));
 
-        mockMvc.perform(get("/admin/assets/index-CqWVGEfW.js"))
+        mockMvc.perform(get("/admin/assets/index-oyVbV6iQ.js"))
                 .andExpect(status().isOk());
     }
 
@@ -88,6 +88,9 @@ class AdminSpaWebIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/admin/integracoes"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/admin/tags/sugestoes"))
                 .andExpect(status().isUnauthorized());
     }
 }

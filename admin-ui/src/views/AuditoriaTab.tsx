@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -13,6 +13,7 @@ export const AuditoriaTab: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [filtroAcao, setFiltroAcao] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState<'TODAS' | 'TAGS' | 'CATALOGO' | 'USUARIOS' | 'CONFIG'>('TODAS');
 
   const carregarAuditoria = async (p: number = page) => {
     try {
@@ -31,7 +32,21 @@ export const AuditoriaTab: React.FC = () => {
     carregarAuditoria(page);
   }, [page]);
 
+  const getAcaoBadgeVariant = (acao: string): 'brand' | 'success' | 'warning' | 'danger' | 'neutral' => {
+    const a = acao.toUpperCase();
+    if (a.includes('APROVAD') || a.includes('OFICIALIZ') || a.includes('ATIVAD')) return 'success';
+    if (a.includes('REJEITAD') || a.includes('BAN') || a.includes('SUSPENS') || a.includes('DESATIVAD')) return 'danger';
+    if (a.includes('MERGE') || a.includes('MESCL') || a.includes('STRIKE')) return 'warning';
+    if (a.includes('OVERRIDE') || a.includes('CONFIG') || a.includes('TAG')) return 'brand';
+    return 'neutral';
+  };
+
   const filtered = auditorias.filter((a) => {
+    if (filtroCategoria === 'TAGS' && !a.acao.toLowerCase().includes('tag')) return false;
+    if (filtroCategoria === 'CATALOGO' && !a.acao.toLowerCase().includes('obra') && !a.acao.toLowerCase().includes('genero')) return false;
+    if (filtroCategoria === 'USUARIOS' && !a.acao.toLowerCase().includes('usuario') && !a.acao.toLowerCase().includes('role') && !a.acao.toLowerCase().includes('strike')) return false;
+    if (filtroCategoria === 'CONFIG' && !a.acao.toLowerCase().includes('flag') && !a.acao.toLowerCase().includes('provedor')) return false;
+
     if (!filtroAcao) return true;
     const term = filtroAcao.toLowerCase();
     return (
@@ -47,9 +62,12 @@ export const AuditoriaTab: React.FC = () => {
       {/* Top Banner */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Trilha de Auditoria & Compliance (LGPD / ANPD)</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldCheck size={22} style={{ color: 'var(--brand-primary)' }} />
+            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Trilha de Auditoria & Compliance (LGPD / ANPD)</h2>
+          </div>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Registro imutável de todas as ações administrativas, alterações de catálogo, moderação e acessos a dados sensíveis.
+            Registro imutável de todas as ações administrativas, moderação de tags comunitárias, curadoria e compliance.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={() => carregarAuditoria(page)} isLoading={isLoading}>
@@ -58,8 +76,8 @@ export const AuditoriaTab: React.FC = () => {
         </Button>
       </div>
 
-      {/* Filtro */}
-      <Card style={{ padding: '16px' }}>
+      {/* Filtros */}
+      <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <Search size={16} style={{ color: 'var(--text-muted)' }} />
           <input
@@ -75,6 +93,32 @@ export const AuditoriaTab: React.FC = () => {
               color: 'var(--text-primary)',
             }}
           />
+        </div>
+
+        {/* Categorias Rápidas */}
+        <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px', flexWrap: 'wrap' }}>
+          {(['TODAS', 'TAGS', 'CATALOGO', 'USUARIOS', 'CONFIG'] as const).map((cat) => (
+            <Button
+              key={cat}
+              variant={filtroCategoria === cat ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setFiltroCategoria(cat)}
+              style={{
+                fontSize: '11px',
+                borderColor: filtroCategoria === cat ? 'var(--brand)' : 'transparent',
+              }}
+            >
+              {cat === 'TODAS'
+                ? 'Todos os Registros'
+                : cat === 'TAGS'
+                ? 'Tags Comunitárias'
+                : cat === 'CATALOGO'
+                ? 'Catálogo & Obras'
+                : cat === 'USUARIOS'
+                ? 'Usuários'
+                : 'Configurações'}
+            </Button>
+          ))}
         </div>
       </Card>
 
@@ -95,7 +139,7 @@ export const AuditoriaTab: React.FC = () => {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Nenhum registro de auditoria gravado.
+                  Nenhum registro de auditoria encontrado para o filtro aplicado.
                 </td>
               </tr>
             ) : (
@@ -105,7 +149,7 @@ export const AuditoriaTab: React.FC = () => {
                     {new Date(a.criadoEm).toLocaleString()}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <Badge variant="brand" size="sm">{a.acao}</Badge>
+                    <Badge variant={getAcaoBadgeVariant(a.acao)} size="sm">{a.acao}</Badge>
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: 600 }}>
                     {a.adminApelido} <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>[#{a.adminId}]</span>

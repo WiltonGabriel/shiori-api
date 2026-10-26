@@ -8,6 +8,9 @@ import {
   Plus,
   RefreshCw,
   BookOpen,
+  Filter,
+  Tag as TagIcon,
+  X,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -16,7 +19,7 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { AdminService } from '../services/admin.service';
 import { toast } from '../components/ui/Toast';
-import type { ObraResponse, GeneroResponse } from '../types/admin.types';
+import type { ObraResponse, GeneroResponse, TagObraResponse } from '../types/admin.types';
 
 export const CatalogTab: React.FC = () => {
   const [obras, setObras] = useState<ObraResponse[]>([]);
@@ -25,6 +28,16 @@ export const CatalogTab: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filtros Avançados de Busca (Criteria API)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState<string>('');
+  const [filtroStatus, setFiltroStatus] = useState<string>('');
+  const [filtroOrdenacao, setFiltroOrdenacao] = useState<'NOTA_DESC' | 'NOTA_ASC' | 'CAPITULOS_DESC' | 'TITULO_ASC' | 'TITULO_DESC' | 'RECENTES'>('NOTA_DESC');
+
+  // Modal Tags Comunitárias da Obra (Incremento 2.2)
+  const [selectedObraTags, setSelectedObraTags] = useState<{ obra: ObraResponse; tags: TagObraResponse[] } | null>(null);
+  const [isLoadingObraTags, setIsLoadingObraTags] = useState(false);
 
   // Modal Mesclar Obras
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
@@ -54,12 +67,27 @@ export const CatalogTab: React.FC = () => {
   const [tagMotivo, setTagMotivo] = useState('');
   const [isMergingTags, setIsMergingTags] = useState(false);
 
-  const carregarObras = async (q: string = searchQuery, p: number = page) => {
+  const carregarObras = async (p: number = page) => {
     try {
       setIsLoading(true);
-      const res = await AdminService.buscarObras(q, p, 15);
-      setObras(res.content || []);
-      setTotalPages(res.totalPages || 1);
+      const isAdvancedActive = Boolean(filtroTipo || filtroStatus || filtroOrdenacao !== 'NOTA_DESC');
+
+      if (isAdvancedActive) {
+        const res = await AdminService.buscarObrasAvancada({
+          termo: searchQuery.trim() || undefined,
+          tipos: filtroTipo ? [filtroTipo] : undefined,
+          status: filtroStatus ? [filtroStatus] : undefined,
+          ordenacao: filtroOrdenacao,
+          pagina: p,
+          itensPorPagina: 15,
+        });
+        setObras(res.content || []);
+        setTotalPages(res.totalPages || 1);
+      } else {
+        const res = await AdminService.buscarObras(searchQuery.trim(), p, 15);
+        setObras(res.content || []);
+        setTotalPages(res.totalPages || 1);
+      }
     } catch {
       toast.error('Erro ao buscar obras no catálogo.');
     } finally {
@@ -77,14 +105,38 @@ export const CatalogTab: React.FC = () => {
   };
 
   useEffect(() => {
-    carregarObras();
+    carregarObras(page);
+  }, [page, filtroTipo, filtroStatus, filtroOrdenacao]);
+
+  useEffect(() => {
     carregarGeneros();
-  }, [page]);
+  }, []);
 
   const handleBuscar = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
-    carregarObras(searchQuery, 0);
+    carregarObras(0);
+  };
+
+  const handleLimparFiltros = () => {
+    setSearchQuery('');
+    setFiltroTipo('');
+    setFiltroStatus('');
+    setFiltroOrdenacao('NOTA_DESC');
+    setPage(0);
+  };
+
+  const handleVerTagsDaObra = async (obra: ObraResponse) => {
+    try {
+      setIsLoadingObraTags(true);
+      setSelectedObraTags({ obra, tags: [] });
+      const tags = await AdminService.listarTagsDaObra(obra.id);
+      setSelectedObraTags({ obra, tags });
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao carregar tags comunitárias da obra.');
+    } finally {
+      setIsLoadingObraTags(false);
+    }
   };
 
   const handleOficializar = async (id: number, titulo: string) => {
@@ -113,7 +165,7 @@ export const CatalogTab: React.FC = () => {
       setIsMergeModalOpen(false);
       setIdPrincipal('');
       setIdDuplicada('');
-      carregarObras();
+      carregarObras(page);
     } catch (err: any) {
       toast.error(err.message || 'Falha ao mesclar obras.');
     } finally {
@@ -204,6 +256,8 @@ export const CatalogTab: React.FC = () => {
     }
   };
 
+  const hasActiveFilters = Boolean(filtroTipo || filtroStatus || filtroOrdenacao !== 'NOTA_DESC');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Banner */}
@@ -211,11 +265,11 @@ export const CatalogTab: React.FC = () => {
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Curadoria do Catálogo & Taxonomia</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Gerenciamento do acervo oficial ({generos.length} gêneros cadastrados), mesclagem de duplicatas e overrides.
+            Gerenciamento do acervo oficial ({generos.length} gêneros cadastrados), mesclagem de duplicatas, tags e overrides.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <Button variant="secondary" size="sm" onClick={() => carregarObras(searchQuery, page)} isLoading={isLoading}>
+          <Button variant="secondary" size="sm" onClick={() => carregarObras(page)} isLoading={isLoading}>
             <RefreshCw size={14} />
             <span>Atualizar</span>
           </Button>
@@ -234,21 +288,145 @@ export const CatalogTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Barra de Busca de Obras */}
-      <Card style={{ padding: '16px' }}>
+      {/* Barra de Busca e Filtros Avançados */}
+      <Card style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <form onSubmit={handleBuscar} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ flex: 1 }}>
             <Input
-              placeholder="Buscar obras por título no catálogo oficial..."
+              placeholder="Buscar obras por título no catálogo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Button
+            type="button"
+            variant={showAdvancedFilters || hasActiveFilters ? 'secondary' : 'ghost'}
+            size="md"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{
+              borderColor: hasActiveFilters ? 'var(--brand)' : undefined,
+              position: 'relative',
+            }}
+          >
+            <Filter size={14} />
+            <span>Filtros {hasActiveFilters ? '(Ativos)' : ''}</span>
+          </Button>
           <Button type="submit" variant="primary">
             <Search size={14} />
             <span>Buscar</span>
           </Button>
         </form>
+
+        {/* Painel Expansível de Filtros Avançados */}
+        {showAdvancedFilters && (
+          <div
+            style={{
+              paddingTop: '12px',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '12px',
+              alignItems: 'end',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Formato / Tipo:
+              </label>
+              <select
+                value={filtroTipo}
+                onChange={(e) => {
+                  setFiltroTipo(e.target.value);
+                  setPage(0);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="">Todos os Formatos</option>
+                <option value="MANGA">Mangá</option>
+                <option value="MANHWA">Manhwa</option>
+                <option value="MANHUA">Manhua</option>
+                <option value="LIGHT_NOVEL">Light Novel</option>
+                <option value="WEBTOON">Webtoon</option>
+                <option value="LIVRO">Livro</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Status de Publicação:
+              </label>
+              <select
+                value={filtroStatus}
+                onChange={(e) => {
+                  setFiltroStatus(e.target.value);
+                  setPage(0);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="">Todos os Status</option>
+                <option value="LANCANDO">Lançando</option>
+                <option value="CONCLUIDO">Concluído</option>
+                <option value="PAUSADO">Pausado</option>
+                <option value="CANCELADO">Cancelado</option>
+                <option value="HIATO">Hiato</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                Ordenação:
+              </label>
+              <select
+                value={filtroOrdenacao}
+                onChange={(e) => {
+                  setFiltroOrdenacao(e.target.value as any);
+                  setPage(0);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="NOTA_DESC">Melhor Avaliação</option>
+                <option value="NOTA_ASC">Menor Avaliação</option>
+                <option value="TITULO_ASC">Título (A-Z)</option>
+                <option value="TITULO_DESC">Título (Z-A)</option>
+                <option value="RECENTES">Adicionados Recentemente</option>
+                <option value="CAPITULOS_DESC">Mais Capítulos</option>
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <div>
+                <Button variant="ghost" size="sm" onClick={handleLimparFiltros} style={{ width: '100%' }}>
+                  <X size={14} />
+                  <span>Limpar Filtros</span>
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Lista de Obras */}
@@ -288,7 +466,16 @@ export const CatalogTab: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleVerTagsDaObra(obra)}
+                  title="Consultar tags comunitárias e pontuação de relevância"
+                >
+                  <TagIcon size={14} />
+                  <span>Tags Comunitárias</span>
+                </Button>
                 {!obra.oficial && (
                   <Button
                     variant="outline"
@@ -336,6 +523,65 @@ export const CatalogTab: React.FC = () => {
             Próxima →
           </Button>
         </div>
+      )}
+
+      {/* MODAL: Visualizar Tags Comunitárias da Obra (Incremento 2.2) */}
+      {selectedObraTags && (
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedObraTags(null)}
+          title={`Tags Comunitárias: ${selectedObraTags.obra.titulo}`}
+          footer={
+            <Button variant="secondary" onClick={() => setSelectedObraTags(null)}>
+              Fechar
+            </Button>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Tags atribuídas pela comunidade de leitores e validadas por pontuação de relevância (score de votos positivos e negativos).
+            </p>
+
+            {isLoadingObraTags ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                Carregando tags da obra...
+              </div>
+            ) : selectedObraTags.tags.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+                Nenhuma tag comunitária vinculada a esta obra até o momento. Leitores podem sugerir tags pelo catálogo.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {selectedObraTags.tags.map((t) => (
+                  <div
+                    key={t.tagId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: 'var(--brand-light)' }}>#{t.nome}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      ({t.slug})
+                    </span>
+                    <Badge
+                      variant={t.score > 0 ? 'success' : t.score < 0 ? 'danger' : 'neutral'}
+                      size="sm"
+                    >
+                      Score: {t.score > 0 ? `+${t.score}` : t.score}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* Modal Mesclar Obras */}

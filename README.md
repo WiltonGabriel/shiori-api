@@ -75,7 +75,11 @@ O **Shiori API** atua como o Hub do ecossistema Shiori:
    ```
    A API estará disponível em: `http://localhost:8080`.
 
-5. **Testar endpoint de saúde (Health Check):**
+5. **Acessar o Painel Administrativo da Shiori API:**
+   Acesse diretamente no navegador: `http://localhost:8080/admin/`.
+   O painel é independente do cliente leitor (`shiori-web`), permitindo gerenciar integrações, catálogo, moderação, usuários, feature flags e auditoria. Consulte [`admin-ui/README.md`](admin-ui/README.md) para detalhes.
+
+6. **Testar endpoint de saúde (Health Check):**
    ```bash
    curl http://localhost:8080/actuator/health
    ```

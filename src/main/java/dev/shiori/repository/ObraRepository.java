@@ -6,12 +6,13 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import dev.shiori.domain.enums.StatusCatalogo;
 import dev.shiori.domain.enums.TipoObra;
 import dev.shiori.domain.model.Obra;
 
-public interface ObraRepository extends JpaRepository<Obra, Long> {
+public interface ObraRepository extends JpaRepository<Obra, Long>, JpaSpecificationExecutor<Obra> {
 
     @Override
     @EntityGraph(attributePaths = {"generos", "tags"})

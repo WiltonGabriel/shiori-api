@@ -3,7 +3,7 @@
 [![Build & Tests](https://img.shields.io/badge/tests-244%20passed-brightgreen.svg)](pom.xml)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-25%20LTS-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
-[![Version](https://img.shields.io/badge/version-0.0.12--alpha-blue.svg)](pom.xml)
+[![Version](https://img.shields.io/badge/version-0.0.13--alpha-blue.svg)](pom.xml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > Back-end robusto, API REST stateless de alta performance e Hub de catalogação do ecossistema **Shiori**. Desenvolvido com foco absoluto em **Soberania do Leitor**, **Privacidade por Design (Privacy by Design)**, desacoplamento arquitetural e resiliência contra censura.

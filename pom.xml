@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>dev.shiori</groupId>
 	<artifactId>shiori</artifactId>
-	<version>0.0.12-alpha</version>
+	<version>0.0.13-alpha</version>
 	<name>Shiori API</name>
 	<description>Back-end e API REST da Catálogo de Leituras Shiori</description>
 	<properties>

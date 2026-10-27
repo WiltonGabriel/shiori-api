@@ -141,6 +141,15 @@ public class ObraController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/sugestoes-edicao")
+    public ResponseEntity<dev.shiori.dto.admin.SugestaoEdicaoResponse> sugerirEdicao(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody dev.shiori.dto.SugestaoEdicaoRequest request,
+            @dev.shiori.infra.security.CurrentUser dev.shiori.infra.security.UsuarioPrincipal usuarioLogado) {
+        dev.shiori.dto.admin.SugestaoEdicaoResponse response = obraService.sugerirEdicao(id, request, usuarioLogado.getId());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         obraService.excluirObra(id);

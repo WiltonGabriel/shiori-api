@@ -16,6 +16,7 @@ import dev.shiori.domain.enums.StatusCatalogo;
 import dev.shiori.domain.enums.TipoObra;
 import dev.shiori.domain.exception.RecursoNaoEncontradoException;
 import dev.shiori.domain.model.Obra;
+import dev.shiori.domain.model.SugestaoEdicaoObra;
 import dev.shiori.domain.model.Usuario;
 import dev.shiori.dto.ObraCadastroRequest;
 import dev.shiori.dto.ObraResponse;
@@ -24,6 +25,7 @@ import dev.shiori.dto.obra.ObraBuscaAvancadaFiltro;
 import dev.shiori.repository.AtividadeFeedRepository;
 import dev.shiori.repository.ItemCatalogoRepository;
 import dev.shiori.repository.ObraRepository;
+import dev.shiori.repository.SugestaoEdicaoObraRepository;
 import dev.shiori.repository.UsuarioRepository;
 import dev.shiori.repository.specification.ObraSpecification;
 
@@ -35,21 +37,32 @@ public class ObraService {
     private final UsuarioRepository usuarioRepository;
     private final ItemCatalogoRepository itemCatalogoRepository;
     private final AtividadeFeedRepository atividadeFeedRepository;
+    private final SugestaoEdicaoObraRepository sugestaoEdicaoObraRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
     public ObraService(
             ObraRepository obraRepository,
             UsuarioRepository usuarioRepository,
             ItemCatalogoRepository itemCatalogoRepository,
-            AtividadeFeedRepository atividadeFeedRepository) {
+            AtividadeFeedRepository atividadeFeedRepository,
+            SugestaoEdicaoObraRepository sugestaoEdicaoObraRepository) {
         this.obraRepository = obraRepository;
         this.usuarioRepository = usuarioRepository;
         this.itemCatalogoRepository = itemCatalogoRepository;
         this.atividadeFeedRepository = atividadeFeedRepository;
+        this.sugestaoEdicaoObraRepository = sugestaoEdicaoObraRepository;
+    }
+
+    public ObraService(
+            ObraRepository obraRepository,
+            UsuarioRepository usuarioRepository,
+            ItemCatalogoRepository itemCatalogoRepository,
+            AtividadeFeedRepository atividadeFeedRepository) {
+        this(obraRepository, usuarioRepository, itemCatalogoRepository, atividadeFeedRepository, null);
     }
 
     public ObraService(ObraRepository obraRepository, UsuarioRepository usuarioRepository) {
-        this(obraRepository, usuarioRepository, null, null);
+        this(obraRepository, usuarioRepository, null, null, null);
     }
 
     @Transactional
@@ -219,6 +232,33 @@ public class ObraService {
             atividadeFeedRepository.desvincularObra(obraId);
         }
         obraRepository.deleteById(obraId);
+    }
+
+    @Transactional
+    public dev.shiori.dto.admin.SugestaoEdicaoResponse sugerirEdicao(
+            Long obraId,
+            dev.shiori.dto.SugestaoEdicaoRequest request,
+            Long usuarioId) {
+        Obra obra = buscarObraPorId(obraId);
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário autor não encontrado: ID " + usuarioId));
+
+        SugestaoEdicaoObra sugestao = obra.sugerirEdicao(
+                usuario,
+                request.tituloPrincipal(),
+                request.tituloOriginal(),
+                request.capaUrl(),
+                request.sinopse(),
+                request.totalCapitulosLancados(),
+                request.tipoObra(),
+                request.justificativa()
+        );
+
+        if (sugestaoEdicaoObraRepository != null) {
+            SugestaoEdicaoObra salva = sugestaoEdicaoObraRepository.save(sugestao);
+            return dev.shiori.dto.admin.SugestaoEdicaoResponse.deEntidade(salva);
+        }
+        return dev.shiori.dto.admin.SugestaoEdicaoResponse.deEntidade(sugestao);
     }
 
     private Obra buscarObraPorId(Long id) {

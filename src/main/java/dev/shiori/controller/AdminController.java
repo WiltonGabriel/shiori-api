@@ -298,6 +298,15 @@ public class AdminController {
     // 7. FILAS DE MODERAÇÃO (SUGESTÕES & DENÚNCIAS)
     // ==========================================
 
+    @GetMapping("/sugestoes")
+    public ResponseEntity<Page<SugestaoEdicaoResponse>> listarSugestoes(
+            @CurrentUser UsuarioPrincipal adminLogado,
+            @RequestParam(required = false) dev.shiori.domain.enums.StatusSugestao status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<SugestaoEdicaoResponse> sugestoes = adminService.listarSugestoes(status, pageable, adminLogado.getId());
+        return ResponseEntity.ok(sugestoes);
+    }
+
     @GetMapping("/sugestoes/pendentes")
     public ResponseEntity<Page<SugestaoEdicaoResponse>> listarSugestoesPendentes(
             @CurrentUser UsuarioPrincipal adminLogado,

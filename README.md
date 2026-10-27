@@ -90,8 +90,13 @@ O repositório inclui suporte a Docker Compose para orquestrar a aplicação e o
    # Windows
    .\mvnw.cmd spring-boot:run
    ```
+   A API estará disponível em `http://localhost:8080`.
 
-3. **Verificar a integridade (Health Check):**
+3. **Acessar o Painel Administrativo Independente da Shiori API:**
+   Acesse diretamente no navegador: `http://localhost:8080/admin/`.
+   O painel é embutido na própria API e desacoplado do cliente leitor (`shiori-web`), permitindo gerenciar integrações, curadoria do catálogo, taxonomia de gêneros, governança de tags comunitárias, moderação, usuários, feature flags e auditoria. Consulte [`admin-ui/README.md`](admin-ui/README.md) para documentação completa.
+
+4. **Verificar a integridade (Health Check):**
    ```bash
    curl http://localhost:8080/actuator/health
    ```
@@ -129,6 +134,22 @@ ADMIN_DEFAULT_PASSWORD=minha_senha_mestra_segura
 
 ---
 
+## 🎛️ Painel Administrativo Embutido (Shiori API Admin)
+
+A Shiori API inclui uma interface administrativa SPA (Single Page Application) embutida em `/admin`, permitindo a gestão da instância diretamente pelo navegador sem dependência do cliente leitor (`shiori-web`):
+
+- **Dashboard de Métricas:** Estatísticas de acervo, usuários, estantes ativas e telemetria básica do Spring Boot Actuator.
+- **Curadoria do Catálogo & Taxonomia:** Busca avançada com Criteria API, tags comunitárias com pontuação de relevância, gestão de gêneros literários canônicos, mesclagem de obras duplicadas e overrides de metadados.
+- **Governança & Moderação:** Fila de moderação de tags comunitárias (aprovação direta ou rejeição com justificativa obrigatória), auditoria de votos e moderação de denúncias de conteúdo.
+- **Gestão de Usuários:** Listagem paginada, aplicação de advertências (strikes) e suspensões preventivas com justificativa formal.
+- **Integrações Externas:** Teste de conectividade e status dos provedores de catálogo (Kitsu para novels/mangas e Open Library para livros).
+- **Federação & Pareamentos:** Gestão de nós vizinhos na malha federada e handshake de instâncias pareadas.
+- **Trilha de Auditoria:** Histórico imutável de ações administrativas filtrado por categorias semânticas.
+
+Para mais detalhes sobre a stack, arquitetura do frontend e fluxo de build, consulte [`admin-ui/README.md`](admin-ui/README.md).
+
+---
+
 ## 🎯 Prioridades Técnicas e Roadmap Aberto (P0)
 
 O projeto prioriza os seguintes passos técnicos antes de abrir oficialmente para grandes contribuições externas:
@@ -146,6 +167,7 @@ Consulte o documento detalhado em [`docs/memory/roadmap_e_escalonamento.md`](doc
 ## 📚 Documentação Técnica
 
 - 🏛️ **[Arquitetura do Sistema](docs/ARQUITETURA.md):** Camadas, princípios SOLID, Clean Code e padrões de persistência.
+- 🎛️ **[Painel Administrativo da API](admin-ui/README.md):** Documentação do frontend SPA independente embutido em `/admin`.
 - 🔌 **[Manual de Integração de Clientes](docs/INTEGRACAO_CLIENTE.md):** Autenticação JWT, endpoints de catálogo e payloads RFC 9457.
 - 🚢 **[Guia Operacional da Instância de Referência](docs/DEPLOY-REFERENCE.md):** Detalhes específicos de GitOps e manutenção da infraestrutura de referência operada pelo mantenedor.
 

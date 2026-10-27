@@ -71,6 +71,7 @@ public class SecurityConfig {
                                 "/tags", "/tags/**", "/api/tags", "/api/tags/**", "/api/v1/tags", "/api/v1/tags/**").permitAll()
                         .requestMatchers("/api/hub/pareamento/**", "/api/v1/hub/pareamento/**", "/api/federacao/**", "/api/v1/federacao/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/admin", "/admin/**", "/favicon.ico").permitAll()
                         .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasAnyRole("ADMIN", "CURADOR")
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())

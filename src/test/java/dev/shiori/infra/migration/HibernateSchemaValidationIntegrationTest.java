@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.flywaydb.core.Flyway;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -39,6 +40,14 @@ class HibernateSchemaValidationIntegrationTest {
     @Test
     @DisplayName("Deve validar conformidade estrita entre entidades JPA e o esquema migrado no PostgreSQL")
     void deveValidarConformidadeEntreEntidadesEEsquemaPostgres() {
+        Flyway.configure()
+                .dataSource("jdbc:postgresql://localhost:5432/shiori", "shiori", "shiori")
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true)
+                .baselineVersion("1")
+                .load()
+                .migrate();
+
         Map<String, Object> settings = new HashMap<>();
         settings.put("hibernate.connection.url", "jdbc:postgresql://localhost:5432/shiori");
         settings.put("hibernate.connection.username", "shiori");

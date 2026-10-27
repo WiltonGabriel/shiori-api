@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +20,12 @@ import dev.shiori.domain.model.Usuario;
 import dev.shiori.dto.ObraCadastroRequest;
 import dev.shiori.dto.ObraResponse;
 import dev.shiori.dto.ResultadoBuscaObrasResponse;
+import dev.shiori.dto.obra.ObraBuscaAvancadaFiltro;
 import dev.shiori.repository.AtividadeFeedRepository;
 import dev.shiori.repository.ItemCatalogoRepository;
 import dev.shiori.repository.ObraRepository;
 import dev.shiori.repository.UsuarioRepository;
+import dev.shiori.repository.specification.ObraSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -176,6 +183,27 @@ public class ObraService {
         );
 
         return ResultadoBuscaObrasResponse.avisoOutrosFormatos(formatosDetectados, mensagem);
+    }
+
+    /**
+     * Executa a busca avançada paginada no banco de dados via JPA Specification / Criteria API.
+     * Suporta filtros combinados de texto, formatos, status, faixas numéricas de capítulos/notas
+     * e relacionamentos de gêneros e tags com lógica booleana AND, OR e NOT.
+     */
+    @Transactional(readOnly = true)
+    public Page<ObraResponse> buscarObrasAvancada(ObraBuscaAvancadaFiltro filtro) {
+        ObraBuscaAvancadaFiltro filtroEfetivo = filtro != null
+                ? filtro
+                : new ObraBuscaAvancadaFiltro(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+
+        filtroEfetivo.validar();
+
+        Sort sort = ObraSpecification.construirSort(filtroEfetivo.ordenacao());
+        Pageable pageable = PageRequest.of(filtroEfetivo.pagina(), filtroEfetivo.itensPorPagina(), sort);
+        Specification<Obra> spec = ObraSpecification.construir(filtroEfetivo);
+
+        Page<Obra> paginaObras = obraRepository.findAll(spec, pageable);
+        return paginaObras.map(ObraResponse::fromEntity);
     }
 
     @Transactional

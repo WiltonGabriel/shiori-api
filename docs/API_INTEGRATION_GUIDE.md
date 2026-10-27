@@ -120,6 +120,28 @@ Abaixo estão os endpoints fundamentais para quem deseja criar uma interface com
   - **Acesso:** Público
   - **Query Params Opcionais:** `status` (`OFICIAL`, `COMUNITARIO`, `EM_ANALISE`)
   - **Finalidade:** Listagem geral do acervo para busca, filtros e exploração.
+- **`GET /obras/busca-avancada`** (ou `/api/obras/busca-avancada`)
+  - **Acesso:** Público (não requer token)
+  - **Finalidade:** Mecanismo avançado de busca e filtragem do catálogo inspirado no Series Finder, executado de forma paginada e performática diretamente no banco via Criteria API.
+  - **Query Params Suportados:**
+    - `termo` (string): Busca textual case-insensitive no título principal ou título original.
+    - `tipos` (enum/lista): Formatos literários (`MANGA`, `MANHWA`, `MANHUA`, `LIGHT_NOVEL`, `WEB_NOVEL`, `COMIC`, `LIVRO`).
+    - `status` (enum/lista): Status de publicação (`EM_LANCAMENTO`, `CONCLUIDO`, `EM_HIATO`, `CANCELADO`, `NAO_LANCADO`).
+    - `minCapitulos` (inteiro >= 0): Mínimo de capítulos lançados.
+    - `maxCapitulos` (inteiro >= 0): Máximo de capítulos lançados.
+    - `minNota` (decimal de 0.0 a 10.0): Nota comunitária mínima.
+    - `maxNota` (decimal de 0.0 a 10.0): Nota comunitária máxima.
+    - `generosIncluidos` (lista de strings): Nomes ou slugs de gêneros a incluir.
+    - `generosModo` (`AND` ou `OR`, padrão `AND`): `AND` exige que a obra possua todos os gêneros; `OR` exige pelo menos um.
+    - `generosExcluidos` (lista de strings): Nomes ou slugs de gêneros proibidos (exclusão estrita `NOT`).
+    - `tagsIncluidas` (lista de strings): Nomes ou slugs de tags a incluir.
+    - `tagsModo` (`AND` ou `OR`, padrão `AND`): `AND` exige todas as tags; `OR` exige ao menos uma.
+    - `tagsExcluidas` (lista de strings): Nomes ou slugs de tags proibidas (exclusão estrita `NOT`).
+    - `ordenacao` (enum, padrão `NOTA_DESC`): `NOTA_DESC`, `NOTA_ASC`, `CAPITULOS_DESC`, `CAPITULOS_ASC`, `TITULO_ASC`, `TITULO_DESC`, `RECENTES` (ordem aproximada de inserção no acervo via ID decrescente), `ANTIGAS` (ID crescente). Todas as ordenações utilizam amarração secundária estável para evitar paginações inconsistentes.
+    - `pagina` (inteiro >= 0, padrão 0): Índice da página requisitada.
+    - `itensPorPagina` (inteiro de 1 a 50, padrão 20): Quantidade de itens por página.
+  - **Resposta Sucesso (200 OK):**
+    Objeto `Page<ObraResponse>` padronizado do Spring Data (`content`, `totalElements`, `totalPages`, `size`, `number`, etc.).
 - **`GET /obras/{id}`** (ou `/api/obras/{id}`)
   - **Acesso:** Público
   - **Finalidade:** Detalhes de uma obra (sinopse, gêneros, tipo, contagem de capítulos).

@@ -8,10 +8,12 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import dev.shiori.domain.exception.RecursoNaoEncontradoException;
 import dev.shiori.domain.exception.RegraDeNegocioException;
@@ -55,6 +57,34 @@ public class TratadorDeErrosGlobal {
         }
 
         problem.setProperty("campos", erros);
+        return problem;
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ProblemDetail tratarErroBind(BindException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais parâmetros contêm valores inválidos.");
+        problem.setTitle("Parâmetros Inválidos");
+        problem.setType(URI.create("https://shiori.dev/erros/parametros-invalidos"));
+        problem.setProperty("timestamp", Instant.now());
+
+        Map<String, String> erros = new HashMap<>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            String mensagem = error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valor inválido";
+            erros.merge(error.getField(), mensagem, (msg1, msg2) -> msg1 + "; " + msg2);
+        }
+
+        problem.setProperty("campos", erros);
+        return problem;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail tratarTipoParametroInvalido(MethodArgumentTypeMismatchException ex) {
+        String detalhe = String.format("O parâmetro '%s' recebeu um valor inválido: '%s'.", ex.getName(), ex.getValue());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detalhe);
+        problem.setTitle("Tipo de Parâmetro Inválido");
+        problem.setType(URI.create("https://shiori.dev/erros/parametro-invalido"));
+        problem.setProperty("timestamp", Instant.now());
+        problem.setProperty("parametro", ex.getName());
         return problem;
     }
 

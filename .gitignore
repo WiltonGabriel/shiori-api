@@ -9,6 +9,8 @@ target/
 *.nar
 build/
 out/
+admin-ui/node_modules/
+admin-ui/dist/
 
 # Maven Wrapper runtime
 .mvn/wrapper/maven-wrapper.jar

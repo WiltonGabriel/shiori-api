@@ -82,10 +82,38 @@ public class JwtTokenProvider {
                 .claim("id", usuarioId)
                 .claim("role", role)
                 .claim("onboardingConcluido", onboardingConcluido)
+                .claim("tokenType", "ACCESS")
                 .issuedAt(agora)
                 .expiration(expiracao)
                 .signWith(key)
                 .compact();
+    }
+
+    public String gerarRefreshToken(Long usuarioId, String email) {
+        Date agora = new Date();
+        Date expiracao = new Date(agora.getTime() + 30L * 24 * 60 * 60 * 1000L);
+
+        return Jwts.builder()
+                .subject(email)
+                .claim("id", usuarioId)
+                .claim("tokenType", "REFRESH")
+                .issuedAt(agora)
+                .expiration(expiracao)
+                .signWith(key)
+                .compact();
+    }
+
+    public Date extrairExpiracao(String token) {
+        return extrairClaims(token).getExpiration();
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = extrairClaims(token);
+            return "REFRESH".equals(claims.get("tokenType"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public boolean validarToken(String token) {

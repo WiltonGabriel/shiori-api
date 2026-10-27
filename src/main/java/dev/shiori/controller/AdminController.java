@@ -55,7 +55,7 @@ import dev.shiori.service.TagService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping({"/api/admin", "/api/v1/admin"})
 @PreAuthorize("hasAnyRole('ADMIN', 'CURADOR')")
 public class AdminController {
 

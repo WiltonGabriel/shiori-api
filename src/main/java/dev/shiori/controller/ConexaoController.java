@@ -20,7 +20,7 @@ import dev.shiori.infra.security.UsuarioPrincipal;
 import dev.shiori.service.ConexaoUsuarioService;
 
 @RestController
-@RequestMapping("/api/conexoes")
+@RequestMapping({"/api/conexoes", "/api/v1/conexoes"})
 public class ConexaoController {
 
     private final ConexaoUsuarioService conexaoUsuarioService;

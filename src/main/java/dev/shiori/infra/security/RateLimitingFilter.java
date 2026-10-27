@@ -33,10 +33,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String ip = extrairIp(request);
         String uri = request.getRequestURI();
-        int limite = uri.startsWith("/api/auth/") ? LIMITE_AUTH_POR_MINUTO : LIMITE_GERAL_POR_MINUTO;
+        boolean isAuth = uri.startsWith("/api/auth/") || uri.startsWith("/api/v1/auth/");
+        int limite = isAuth ? LIMITE_AUTH_POR_MINUTO : LIMITE_GERAL_POR_MINUTO;
 
         long agora = System.currentTimeMillis();
-        String chave = ip + ":" + (uri.startsWith("/api/auth/") ? "auth" : "geral");
+        String chave = ip + ":" + (isAuth ? "auth" : "geral");
 
         RequisicoesJanela janela = requisicoesPorIp.compute(chave, (k, v) -> {
             if (v == null || agora - v.inicioJanelaMs > JANELA_MS) {

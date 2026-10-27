@@ -16,7 +16,7 @@ import dev.shiori.service.FederacaoService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/federacao")
+@RequestMapping({"/api/federacao", "/api/v1/federacao"})
 public class FederacaoController {
 
     private final FederacaoService federacaoService;

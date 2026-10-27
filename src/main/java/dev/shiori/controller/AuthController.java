@@ -10,14 +10,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dev.shiori.dto.auth.AuthResponse;
 import dev.shiori.dto.auth.LoginRequest;
+import dev.shiori.dto.auth.RefreshTokenRequest;
 import dev.shiori.dto.auth.RegistroRequest;
 import dev.shiori.infra.security.CurrentUser;
 import dev.shiori.infra.security.UsuarioPrincipal;
 import dev.shiori.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/api/v1/auth"})
 public class AuthController {
 
     private final AuthService authService;
@@ -36,6 +38,26 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refreshToken(request.refreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            HttpServletRequest request,
+            @RequestBody(required = false) RefreshTokenRequest refreshRequest) {
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7).trim()
+                : null;
+        String refreshToken = refreshRequest != null ? refreshRequest.refreshToken() : null;
+
+        authService.logout(accessToken, refreshToken);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")

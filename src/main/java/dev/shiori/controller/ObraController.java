@@ -33,7 +33,7 @@ import dev.shiori.service.UsuarioService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping({"/obras", "/api/obras"})
+@RequestMapping({"/obras", "/api/obras", "/api/v1/obras"})
 public class ObraController {
 
     private final ObraService obraService;

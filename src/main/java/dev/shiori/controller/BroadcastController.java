@@ -11,7 +11,7 @@ import dev.shiori.dto.admin.BroadcastResponse;
 import dev.shiori.service.AdminService;
 
 @RestController
-@RequestMapping("/api/broadcasts")
+@RequestMapping({"/api/broadcasts", "/api/v1/broadcasts"})
 public class BroadcastController {
 
     private final AdminService adminService;

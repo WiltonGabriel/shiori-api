@@ -17,7 +17,7 @@ import dev.shiori.service.PareamentoService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/hub/pareamento")
+@RequestMapping({"/api/hub/pareamento", "/api/v1/hub/pareamento"})
 public class PareamentoController {
 
     private final PareamentoService pareamentoService;

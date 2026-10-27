@@ -188,4 +188,117 @@ class AuthControllerIntegrationTest {
                 .andExpect(jsonPath("$.role").value("ROLE_USER"))
                 .andExpect(jsonPath("$.onboardingConcluido").value(true));
     }
+
+    @Test
+    @DisplayName("Deve registrar e autenticar via endpoints versionados /api/v1/auth")
+    void deveRegistrarEAutenticarViaV1() throws Exception {
+        String jsonRegistro = """
+                {
+                    "email": "v1.test@shiori.dev",
+                    "senha": "senhaForte123",
+                    "apelido": "v1_user"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRegistro))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.refreshToken").isString())
+                .andExpect(jsonPath("$.email").value("v1.test@shiori.dev"));
+
+        String jsonLogin = """
+                {
+                    "email": "v1.test@shiori.dev",
+                    "senha": "senhaForte123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonLogin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.refreshToken").isString());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/refresh deve renovar par de tokens com sucesso")
+    void deveRenovarTokensComSucesso() throws Exception {
+        String jsonRegistro = """
+                {
+                    "email": "refresh.flow@shiori.dev",
+                    "senha": "senhaForte123",
+                    "apelido": "refresh_user"
+                }
+                """;
+
+        MvcResult result = mockMvc.perform(post("/api/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRegistro))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String refreshToken = body.split("\"refreshToken\":\"")[1].split("\"")[0];
+
+        String jsonRefresh = String.format("""
+                {
+                    "refreshToken": "%s"
+                }
+                """, refreshToken);
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRefresh))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isString())
+                .andExpect(jsonPath("$.refreshToken").isString());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/logout deve invalidar o access token para requisições subsequentes")
+    void deveInvalidarTokenAposLogout() throws Exception {
+        String jsonRegistro = """
+                {
+                    "email": "logout.flow@shiori.dev",
+                    "senha": "senhaForte123",
+                    "apelido": "logout_user"
+                }
+                """;
+
+        MvcResult result = mockMvc.perform(post("/api/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRegistro))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String accessToken = body.split("\"token\":\"")[1].split("\"")[0];
+        String refreshToken = body.split("\"refreshToken\":\"")[1].split("\"")[0];
+
+        // Confirma que /me funciona
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk());
+
+        // Executa logout
+        String jsonLogout = String.format("""
+                {
+                    "refreshToken": "%s"
+                }
+                """, refreshToken);
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonLogout))
+                .andExpect(status().isNoContent());
+
+        // Agora /me deve retornar 401 Unauthorized pois o token foi revogado
+        mockMvc.perform(get("/api/auth/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isUnauthorized());
+    }
 }

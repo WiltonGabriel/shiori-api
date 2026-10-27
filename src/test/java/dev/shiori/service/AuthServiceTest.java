@@ -36,11 +36,14 @@ class AuthServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
+    @Mock
+    private dev.shiori.infra.security.TokenRevocationService tokenRevocationService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(usuarioRepository, passwordEncoder, jwtTokenProvider);
+        authService = new AuthService(usuarioRepository, passwordEncoder, jwtTokenProvider, tokenRevocationService);
     }
 
     @Test
@@ -150,5 +153,58 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(RegraDeNegocioException.class)
                 .hasMessageContaining("desativada");
+    }
+
+    @Test
+    @DisplayName("Deve renovar token com sucesso usando refresh token válido")
+    void deveRenovarTokenComSucesso() {
+        String oldRefreshToken = "refresh.token.antigo";
+        Usuario usuario = new Usuario("usuario@shiori.dev", "hashBcrypt");
+
+        when(tokenRevocationService.isRevogado(oldRefreshToken)).thenReturn(false);
+        when(jwtTokenProvider.validarToken(oldRefreshToken)).thenReturn(true);
+        when(jwtTokenProvider.isRefreshToken(oldRefreshToken)).thenReturn(true);
+        when(jwtTokenProvider.extrairUsuarioId(oldRefreshToken)).thenReturn(1L);
+        when(jwtTokenProvider.extrairExpiracao(oldRefreshToken)).thenReturn(new java.util.Date(System.currentTimeMillis() + 60000));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(jwtTokenProvider.gerarToken(usuario)).thenReturn("novo.access.token");
+        when(jwtTokenProvider.gerarRefreshToken(usuario.getId(), usuario.getEmail())).thenReturn("novo.refresh.token");
+
+        AuthResponse response = authService.refreshToken(oldRefreshToken);
+
+        assertThat(response).isNotNull();
+        assertThat(response.token()).isEqualTo("novo.access.token");
+        assertThat(response.refreshToken()).isEqualTo("novo.refresh.token");
+        verify(tokenRevocationService).revogarToken(org.mockito.ArgumentMatchers.eq(oldRefreshToken), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar renovação de token se o refresh token foi revogado")
+    void deveRejeitarRefreshTokenRevogado() {
+        String tokenRevogado = "refresh.token.revogado";
+        when(jwtTokenProvider.validarToken(tokenRevogado)).thenReturn(true);
+        when(jwtTokenProvider.isRefreshToken(tokenRevogado)).thenReturn(true);
+        when(tokenRevocationService.isRevogado(tokenRevogado)).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.refreshToken(tokenRevogado))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("revogado");
+    }
+
+    @Test
+    @DisplayName("Deve revogar access token e refresh token no logout")
+    void deveRevogarTokensNoLogout() {
+        String accessToken = "access.token.valido";
+        String refreshToken = "refresh.token.valido";
+
+        when(jwtTokenProvider.validarToken(accessToken)).thenReturn(true);
+        when(jwtTokenProvider.validarToken(refreshToken)).thenReturn(true);
+        when(jwtTokenProvider.extrairExpiracao(accessToken)).thenReturn(new java.util.Date(System.currentTimeMillis() + 60000));
+        when(jwtTokenProvider.extrairExpiracao(refreshToken)).thenReturn(new java.util.Date(System.currentTimeMillis() + 120000));
+
+        authService.logout(accessToken, refreshToken);
+
+        verify(tokenRevocationService).revogarToken(org.mockito.ArgumentMatchers.eq(accessToken), org.mockito.ArgumentMatchers.anyLong());
+        verify(tokenRevocationService).revogarToken(org.mockito.ArgumentMatchers.eq(refreshToken), org.mockito.ArgumentMatchers.anyLong());
     }
 }

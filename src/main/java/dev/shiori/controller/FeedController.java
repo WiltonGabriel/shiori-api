@@ -14,7 +14,7 @@ import dev.shiori.infra.security.UsuarioPrincipal;
 import dev.shiori.service.FeedService;
 
 @RestController
-@RequestMapping("/api/feed")
+@RequestMapping({"/api/feed", "/api/v1/feed"})
 public class FeedController {
 
     private final FeedService feedService;

@@ -24,7 +24,7 @@ import dev.shiori.service.ItemCatalogoService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/catalogo")
+@RequestMapping({"/api/catalogo", "/api/v1/catalogo"})
 public class ItemCatalogoController {
 
     private final ItemCatalogoService itemCatalogoService;

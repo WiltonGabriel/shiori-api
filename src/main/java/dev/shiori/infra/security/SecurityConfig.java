@@ -61,14 +61,17 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/registrar", "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/broadcasts/ativos").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/obras", "/obras/**", "/api/obras", "/api/obras/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/generos", "/generos/**", "/api/generos", "/api/generos/**", "/api/tags", "/api/tags/**").permitAll()
-                        .requestMatchers("/api/hub/pareamento/**", "/api/federacao/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/registrar", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
+                                "/api/v1/auth/registrar", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/*/perfil", "/api/v1/usuarios/*/perfil").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/broadcasts/ativos", "/api/v1/broadcasts/ativos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/obras", "/obras/**", "/api/obras", "/api/obras/**", "/api/v1/obras", "/api/v1/obras/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/generos", "/generos/**", "/api/generos", "/api/generos/**", "/api/v1/generos", "/api/v1/generos/**",
+                                "/tags", "/tags/**", "/api/tags", "/api/tags/**", "/api/v1/tags", "/api/v1/tags/**").permitAll()
+                        .requestMatchers("/api/hub/pareamento/**", "/api/v1/hub/pareamento/**", "/api/federacao/**", "/api/v1/federacao/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "CURADOR")
+                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasAnyRole("ADMIN", "CURADOR")
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)

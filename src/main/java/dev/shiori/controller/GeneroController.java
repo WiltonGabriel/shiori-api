@@ -14,7 +14,7 @@ import dev.shiori.service.GeneroService;
  * Controlador REST público para disponibilização da taxonomia oficial de gêneros literários (SRP - Uncle Bob).
  */
 @RestController
-@RequestMapping({"/generos", "/api/generos"})
+@RequestMapping({"/generos", "/api/generos", "/api/v1/generos"})
 public class GeneroController {
 
     private final GeneroService generoService;

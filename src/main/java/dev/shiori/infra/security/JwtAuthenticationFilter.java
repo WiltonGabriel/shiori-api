@@ -19,12 +19,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenRevocationService tokenRevocationService;
 
     public JwtAuthenticationFilter(
             JwtTokenProvider jwtTokenProvider,
-            CustomUserDetailsService userDetailsService) {
+            CustomUserDetailsService userDetailsService,
+            TokenRevocationService tokenRevocationService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -35,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extrairToken(request);
 
-        if (token != null && jwtTokenProvider.validarToken(token)) {
+        if (token != null && jwtTokenProvider.validarToken(token) && !tokenRevocationService.isRevogado(token)) {
             String email = jwtTokenProvider.extrairEmail(token);
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {

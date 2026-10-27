@@ -34,7 +34,7 @@ public class TagController {
         this.tagService = tagService;
     }
 
-    @PostMapping({"/obras/{obraId}/tags/sugestoes", "/api/obras/{obraId}/tags/sugestoes"})
+    @PostMapping({"/obras/{obraId}/tags/sugestoes", "/api/obras/{obraId}/tags/sugestoes", "/api/v1/obras/{obraId}/tags/sugestoes"})
     public ResponseEntity<SugestaoTagResponse> sugerirTag(
             @PathVariable Long obraId,
             @RequestBody @Valid SugerirTagRequest request,
@@ -44,13 +44,13 @@ public class TagController {
         Long usuarioId = usuarioLogado != null ? usuarioLogado.getId() : null;
         SugestaoTagResponse response = tagService.sugerirTagParaObra(obraId, usuarioId, request);
 
-        URI uri = uriBuilder.path("/api/obras/{obraId}/tags/sugestoes/{id}")
+        URI uri = uriBuilder.path("/api/v1/obras/{obraId}/tags/sugestoes/{id}")
                 .buildAndExpand(obraId, response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(response);
     }
 
-    @GetMapping({"/obras/{obraId}/tags", "/api/obras/{obraId}/tags"})
+    @GetMapping({"/obras/{obraId}/tags", "/api/obras/{obraId}/tags", "/api/v1/obras/{obraId}/tags"})
     public ResponseEntity<List<TagObraResponse>> listarTagsDaObra(
             @PathVariable Long obraId,
             @CurrentUser UsuarioPrincipal usuarioLogado) {
@@ -60,7 +60,7 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
-    @PostMapping({"/obras/{obraId}/tags/{tagId}/votar", "/api/obras/{obraId}/tags/{tagId}/votar"})
+    @PostMapping({"/obras/{obraId}/tags/{tagId}/votar", "/api/obras/{obraId}/tags/{tagId}/votar", "/api/v1/obras/{obraId}/tags/{tagId}/votar"})
     public ResponseEntity<VotoTagResponse> votarEmTag(
             @PathVariable Long obraId,
             @PathVariable Long tagId,
@@ -72,7 +72,7 @@ public class TagController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping({"/tags", "/api/tags"})
+    @GetMapping({"/tags", "/api/tags", "/api/v1/tags"})
     public ResponseEntity<List<TagResponse>> pesquisarTags(
             @RequestParam(required = false) String termo,
             @RequestParam(required = false) Integer limite) {

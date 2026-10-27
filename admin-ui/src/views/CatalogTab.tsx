@@ -11,6 +11,8 @@ import {
   Filter,
   Tag as TagIcon,
   X,
+  Trash2,
+  Edit2,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -56,9 +58,11 @@ export const CatalogTab: React.FC = () => {
 
   // Modal Novo Gênero
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
+  const [editingGenreId, setEditingGenreId] = useState<number | null>(null);
   const [newGenreNome, setNewGenreNome] = useState('');
   const [newGenreDescricao, setNewGenreDescricao] = useState('');
   const [isSavingGenre, setIsSavingGenre] = useState(false);
+  const [isDeletingGenreId, setIsDeletingGenreId] = useState<number | null>(null);
 
   // Modal Mesclar Tags
   const [isMergeTagModalOpen, setIsMergeTagModalOpen] = useState(false);
@@ -209,22 +213,61 @@ export const CatalogTab: React.FC = () => {
     }
   };
 
-  const handleCriarGenero = async (e: React.FormEvent) => {
+  const handleCriarOuAtualizarGenero = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGenreNome.trim()) return;
 
     try {
       setIsSavingGenre(true);
-      const novo = await AdminService.criarGenero(newGenreNome.trim(), newGenreDescricao.trim() || undefined);
-      setGeneros((prev) => [...prev, novo]);
-      toast.success(`Gênero '${novo.nome}' criado com sucesso!`);
-      setIsGenreModalOpen(false);
+      if (editingGenreId) {
+        const atualizado = await AdminService.atualizarGenero(
+          editingGenreId,
+          newGenreNome.trim(),
+          newGenreDescricao.trim() || undefined
+        );
+        setGeneros((prev) => prev.map((g) => (g.id === editingGenreId ? atualizado : g)));
+        toast.success(`Gênero '${atualizado.nome}' atualizado com sucesso!`);
+        setEditingGenreId(null);
+      } else {
+        const novo = await AdminService.criarGenero(newGenreNome.trim(), newGenreDescricao.trim() || undefined);
+        setGeneros((prev) => [...prev, novo]);
+        toast.success(`Gênero '${novo.nome}' criado com sucesso!`);
+      }
       setNewGenreNome('');
       setNewGenreDescricao('');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar gênero.');
+      toast.error(err.message || 'Erro ao salvar gênero.');
     } finally {
       setIsSavingGenre(false);
+    }
+  };
+
+  const handleIniciarEdicaoGenero = (g: GeneroResponse) => {
+    setEditingGenreId(g.id);
+    setNewGenreNome(g.nome);
+    setNewGenreDescricao(g.descricao || '');
+  };
+
+  const handleCancelarEdicaoGenero = () => {
+    setEditingGenreId(null);
+    setNewGenreNome('');
+    setNewGenreDescricao('');
+  };
+
+  const handleExcluirGenero = async (id: number, nome: string) => {
+    if (!window.confirm(`Deseja realmente remover o gênero '${nome}'?`)) return;
+    try {
+      setIsDeletingGenreId(id);
+      await AdminService.excluirGenero(id);
+      setGeneros((prev) => prev.filter((g) => g.id !== id));
+      if (editingGenreId === id) {
+        handleCancelarEdicaoGenero();
+      }
+      toast.success(`Gênero '${nome}' removido com sucesso.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao remover gênero.');
+    } finally {
+      setIsDeletingGenreId(null);
     }
   };
 
@@ -279,7 +322,7 @@ export const CatalogTab: React.FC = () => {
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setIsGenreModalOpen(true)}>
             <Plus size={14} />
-            <span>Novo Gênero</span>
+            <span>Gêneros ({generos.length})</span>
           </Button>
           <Button variant="primary" size="sm" onClick={() => setIsMergeModalOpen(true)}>
             <GitMerge size={14} />
@@ -671,31 +714,169 @@ export const CatalogTab: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Modal Novo Gênero */}
+      {/* Modal Gerenciamento de Gêneros */}
       <Modal
         isOpen={isGenreModalOpen}
-        onClose={() => setIsGenreModalOpen(false)}
-        title="Cadastrar Novo Gênero Literário"
+        onClose={() => {
+          setIsGenreModalOpen(false);
+          handleCancelarEdicaoGenero();
+        }}
+        title="Gerenciar Gêneros Literários Canônicos"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setIsGenreModalOpen(false)}>Cancelar</Button>
-            <Button variant="primary" onClick={handleCriarGenero} isLoading={isSavingGenre}>Cadastrar Gênero</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsGenreModalOpen(false);
+                handleCancelarEdicaoGenero();
+              }}
+            >
+              Fechar
+            </Button>
+            <Button variant="primary" onClick={handleCriarOuAtualizarGenero} isLoading={isSavingGenre}>
+              {editingGenreId ? 'Salvar Alterações' : 'Cadastrar Gênero'}
+            </Button>
           </>
         }
       >
-        <form onSubmit={handleCriarGenero} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <Input
-            label="Nome do Gênero (Ex: Cyberpunk, Ficção Científica)"
-            value={newGenreNome}
-            onChange={(e) => setNewGenreNome(e.target.value)}
-            required
-          />
-          <Input
-            label="Descrição (Opcional)"
-            value={newGenreDescricao}
-            onChange={(e) => setNewGenreDescricao(e.target.value)}
-          />
-        </form>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Formulário de Criação / Edição */}
+          <form
+            onSubmit={handleCriarOuAtualizarGenero}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              padding: '16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {editingGenreId ? '✏️ Editando Gênero Selecionado' : '➕ Novo Gênero Literário'}
+              </span>
+              {editingGenreId && (
+                <button
+                  type="button"
+                  onClick={handleCancelarEdicaoGenero}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Cancelar Edição
+                </button>
+              )}
+            </div>
+            <Input
+              label="Nome do Gênero"
+              placeholder="Ex: Cyberpunk, Ficção Científica"
+              value={newGenreNome}
+              onChange={(e) => setNewGenreNome(e.target.value)}
+              required
+            />
+            <Input
+              label="Descrição (Opcional)"
+              placeholder="Breve definição ou escopo deste gênero"
+              value={newGenreDescricao}
+              onChange={(e) => setNewGenreDescricao(e.target.value)}
+            />
+          </form>
+
+          {/* Lista de Gêneros Existentes */}
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Gêneros Cadastrados ({generos.length})
+            </div>
+            <div
+              style={{
+                maxHeight: '220px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                paddingRight: '4px',
+              }}
+            >
+              {generos.map((g) => (
+                <div
+                  key={g.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: editingGenreId === g.id ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-app)',
+                    border: editingGenreId === g.id ? '1px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {g.nome} <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({g.slug})</span>
+                    </div>
+                    {g.descricao && (
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text-secondary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {g.descricao}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginLeft: '12px' }}>
+                    <button
+                      type="button"
+                      title="Editar gênero"
+                      onClick={() => handleIniciarEdicaoGenero(g)}
+                      style={{
+                        padding: '4px 8px',
+                        background: 'transparent',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Excluir gênero"
+                      disabled={isDeletingGenreId === g.id}
+                      onClick={() => handleExcluirGenero(g.id, g.nome)}
+                      style={{
+                        padding: '4px 8px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#EF4444',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </Modal>
 
       {/* Modal Mesclar Tags */}

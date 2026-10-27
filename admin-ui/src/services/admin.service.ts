@@ -180,6 +180,19 @@ export const AdminService = {
     });
   },
 
+  atualizarGenero(id: number, nome: string, descricao?: string): Promise<GeneroResponse> {
+    return request<GeneroResponse>(`/api/admin/generos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nome, descricao }),
+    });
+  },
+
+  excluirGenero(id: number): Promise<void> {
+    return request<void>(`/api/admin/generos/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   mesclarTags(tagOrigemId: number, tagDestinoId: number, motivo: string): Promise<any> {
     return request<any>('/api/admin/tags/mesclar', {
       method: 'POST',

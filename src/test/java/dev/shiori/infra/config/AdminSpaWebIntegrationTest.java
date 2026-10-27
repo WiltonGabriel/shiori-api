@@ -73,11 +73,28 @@ class AdminSpaWebIntegrationTest {
     @Test
     @DisplayName("Deve entregar arquivos estáticos de ativos (/admin/assets/...)")
     void deveEntregarArquivosEstaticosAssets() throws Exception {
-        mockMvc.perform(get("/admin/assets/index-DdbjQXDU.css"))
+        String cssName = "index-DI9nQTua.css";
+        String jsName = "index-Bvr02mVI.js";
+
+        java.io.File assetsDir = new java.io.File("src/main/resources/static/admin/assets");
+        if (assetsDir.exists() && assetsDir.isDirectory()) {
+            java.io.File[] files = assetsDir.listFiles();
+            if (files != null) {
+                for (java.io.File f : files) {
+                    if (f.getName().endsWith(".css")) {
+                        cssName = f.getName();
+                    } else if (f.getName().endsWith(".js")) {
+                        jsName = f.getName();
+                    }
+                }
+            }
+        }
+
+        mockMvc.perform(get("/admin/assets/" + cssName))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/css"));
 
-        mockMvc.perform(get("/admin/assets/index-oyVbV6iQ.js"))
+        mockMvc.perform(get("/admin/assets/" + jsName))
                 .andExpect(status().isOk());
     }
 

@@ -201,8 +201,24 @@ export const AdminService = {
   },
 
   // 7. Moderação Comunitária
+  listarSugestoes(
+    status?: 'PENDENTE' | 'APROVADA' | 'REJEITADA' | 'TODAS',
+    page: number = 0,
+    size: number = 20
+  ): Promise<PageResponse<SugestaoEdicaoResponse>> {
+    const statusParam = status && status !== 'TODAS' ? `&status=${status}` : '';
+    return request<PageResponse<SugestaoEdicaoResponse>>(`/api/admin/sugestoes?page=${page}&size=${size}${statusParam}`);
+  },
+
   listarSugestoesPendentes(page: number = 0, size: number = 20): Promise<PageResponse<SugestaoEdicaoResponse>> {
     return request<PageResponse<SugestaoEdicaoResponse>>(`/api/admin/sugestoes/pendentes?page=${page}&size=${size}`);
+  },
+
+  sugerirEdicao(obraId: number, data: import('../types/admin.types').SugerirEdicaoRequest): Promise<SugestaoEdicaoResponse> {
+    return request<SugestaoEdicaoResponse>(`/api/obras/${obraId}/sugestoes-edicao`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   avaliarSugestao(sugestaoId: number, aprovada: boolean, parecer?: string): Promise<SugestaoEdicaoResponse> {

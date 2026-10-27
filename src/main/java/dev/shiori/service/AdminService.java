@@ -208,6 +208,10 @@ public class AdminService {
         return curadoriaService.listarSugestoesPendentes(pageable, adminId);
     }
 
+    public Page<SugestaoEdicaoResponse> listarSugestoes(dev.shiori.domain.enums.StatusSugestao status, Pageable pageable, Long adminId) {
+        return curadoriaService.listarSugestoes(status, pageable, adminId);
+    }
+
     public SugestaoEdicaoResponse avaliarSugestao(Long sugestaoId, AvaliarSugestaoRequest request, Long adminId) {
         return curadoriaService.avaliarSugestao(sugestaoId, request, adminId);
     }

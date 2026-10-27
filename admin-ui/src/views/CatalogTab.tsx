@@ -13,6 +13,7 @@ import {
   X,
   Trash2,
   Edit2,
+  FileQuestion,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -70,6 +71,18 @@ export const CatalogTab: React.FC = () => {
   const [tagDestinoId, setTagDestinoId] = useState('');
   const [tagMotivo, setTagMotivo] = useState('');
   const [isMergingTags, setIsMergingTags] = useState(false);
+
+  // Modal Propor Sugestão de Edição ao Catálogo Global
+  const [isSugerirEdicaoModalOpen, setIsSugerirEdicaoModalOpen] = useState(false);
+  const [selectedObraSugerir, setSelectedObraSugerir] = useState<ObraResponse | null>(null);
+  const [sugTituloPrincipal, setSugTituloPrincipal] = useState('');
+  const [sugTituloOriginal, setSugTituloOriginal] = useState('');
+  const [sugCapaUrl, setSugCapaUrl] = useState('');
+  const [sugTipoObra, setSugTipoObra] = useState<string>('MANGA');
+  const [sugTotalCapitulos, setSugTotalCapitulos] = useState<string>('');
+  const [sugSinopse, setSugSinopse] = useState('');
+  const [sugJustificativa, setSugJustificativa] = useState('');
+  const [isSubmittingSugestaoEdicao, setIsSubmittingSugestaoEdicao] = useState(false);
 
   const carregarObras = async (p: number = page) => {
     try {
@@ -210,6 +223,54 @@ export const CatalogTab: React.FC = () => {
       toast.error(err.message || 'Falha ao aplicar override na obra.');
     } finally {
       setIsOverriding(false);
+    }
+  };
+
+  const handleAbrirSugerirEdicao = (obra: ObraResponse) => {
+    setSelectedObraSugerir(obra);
+    setSugTituloPrincipal(obra.tituloPrincipal || obra.titulo || '');
+    setSugTituloOriginal(obra.tituloOriginal || '');
+    setSugCapaUrl(obra.capaUrl || '');
+    setSugTipoObra(obra.tipoObra || obra.tipo || 'MANGA');
+    const caps = obra.totalCapitulosLancados ?? obra.totalCapitulos;
+    setSugTotalCapitulos(caps !== undefined && caps !== null ? String(caps) : '');
+    setSugSinopse(obra.sinopse || '');
+    setSugJustificativa('');
+    setIsSugerirEdicaoModalOpen(true);
+  };
+
+  const handleSubmeterSugestaoEdicao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedObraSugerir) return;
+
+    if (!sugJustificativa.trim()) {
+      toast.error('A justificativa / fonte da sugestão de edição é obrigatória.');
+      return;
+    }
+
+    const caps = sugTotalCapitulos.trim() ? parseInt(sugTotalCapitulos.trim(), 10) : undefined;
+    if (caps !== undefined && (isNaN(caps) || caps < 0)) {
+      toast.error('O total de capítulos lançado deve ser um número não negativo.');
+      return;
+    }
+
+    try {
+      setIsSubmittingSugestaoEdicao(true);
+      await AdminService.sugerirEdicao(selectedObraSugerir.id, {
+        tituloPrincipal: sugTituloPrincipal.trim() || undefined,
+        tituloOriginal: sugTituloOriginal.trim() || undefined,
+        capaUrl: sugCapaUrl.trim() || undefined,
+        tipoObra: sugTipoObra || undefined,
+        totalCapitulosLancados: caps,
+        sinopse: sugSinopse.trim() || undefined,
+        justificativa: sugJustificativa.trim(),
+      });
+      toast.success(`Sugestão de edição enviada para moderação da obra '${selectedObraSugerir.titulo}'!`);
+      setIsSugerirEdicaoModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao enviar sugestão de edição.');
+    } finally {
+      setIsSubmittingSugestaoEdicao(false);
     }
   };
 
@@ -523,7 +584,7 @@ export const CatalogTab: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleOficializar(obra.id, obra.titulo)}
+                    onClick={() => handleOficializar(obra.id, obra.titulo || obra.tituloPrincipal || '')}
                   >
                     <ShieldCheck size={14} />
                     <span>Oficializar</span>
@@ -533,9 +594,19 @@ export const CatalogTab: React.FC = () => {
                   variant="secondary"
                   size="sm"
                   onClick={() => handleAbrirOverride(obra)}
+                  title="Aplicar override administrativo direto na obra"
                 >
                   <Edit3 size={14} />
                   <span>Override</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleAbrirSugerirEdicao(obra)}
+                  title="Propor sugestão de edição de metadados para governança"
+                >
+                  <FileQuestion size={14} />
+                  <span>Sugerir Edição</span>
                 </Button>
               </div>
             </Card>
@@ -916,6 +987,157 @@ export const CatalogTab: React.FC = () => {
             onChange={(e) => setTagMotivo(e.target.value)}
             required
           />
+        </form>
+      </Modal>
+
+      {/* Modal Propor Sugestão de Edição ao Catálogo Global */}
+      <Modal
+        isOpen={isSugerirEdicaoModalOpen}
+        onClose={() => setIsSugerirEdicaoModalOpen(false)}
+        title="Propor Sugestão de Edição ao Catálogo Global"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsSugerirEdicaoModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleSubmeterSugestaoEdicao} isLoading={isSubmittingSugestaoEdicao}>
+              Enviar Sugestão de Edição
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleSubmeterSugestaoEdicao} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Obra de referência: <strong style={{ color: 'var(--text-primary)' }}>{selectedObraSugerir?.titulo}</strong> (#{selectedObraSugerir?.id}).
+            <div style={{ marginTop: '2px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              Sua sugestão será avaliada pela curadoria comunitária do Shiori Hub antes de ser incorporada ao acervo global.
+            </div>
+          </div>
+
+          <Input
+            label="Título Principal Sugerido"
+            placeholder="Ex: Solo Leveling"
+            value={sugTituloPrincipal}
+            onChange={(e) => setSugTituloPrincipal(e.target.value)}
+          />
+
+          <Input
+            label="Título Original Sugerido (Kanji / Romaji / Hangul)"
+            placeholder="Ex: 나 혼자만 레벨업"
+            value={sugTituloOriginal}
+            onChange={(e) => setSugTituloOriginal(e.target.value)}
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Formato / Tipo de Obra
+              </label>
+              <select
+                value={sugTipoObra}
+                onChange={(e) => setSugTipoObra(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-glass-input)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="MANGA">Mangá</option>
+                <option value="MANHWA">Manhwa</option>
+                <option value="MANHUA">Manhua</option>
+                <option value="LIGHT_NOVEL">Light Novel</option>
+                <option value="WEB_NOVEL">Web Novel</option>
+                <option value="NOVEL">Novel</option>
+                <option value="LIVRO">Livro</option>
+                <option value="COMIC">HQ / Comic</option>
+              </select>
+            </div>
+
+            <Input
+              label="Total de Capítulos Lançados"
+              type="number"
+              min="0"
+              placeholder="Ex: 179"
+              value={sugTotalCapitulos}
+              onChange={(e) => setSugTotalCapitulos(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Input
+              label="URL da Imagem de Capa Sugerida"
+              placeholder="https://exemplo.com/capa.jpg"
+              value={sugCapaUrl}
+              onChange={(e) => setSugCapaUrl(e.target.value)}
+            />
+            {sugCapaUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Prévia da Capa:</span>
+                <img
+                  src={sugCapaUrl}
+                  alt="Prévia da capa sugerida"
+                  style={{ width: '48px', height: '68px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}
+                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Sinopse Sugerida
+            </label>
+            <textarea
+              rows={4}
+              placeholder="Descreva a sinopse atualizada em português..."
+              value={sugSinopse}
+              onChange={(e) => setSugSinopse(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-glass-input)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                resize: 'vertical',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Justificativa & Fonte Oficial <span style={{ color: 'var(--accent-red)' }}>*</span>
+            </label>
+            <textarea
+              rows={2}
+              placeholder="Ex: Dados oficiais retirados do site da editora / AniList (link https://...)"
+              value={sugJustificativa}
+              onChange={(e) => setSugJustificativa(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-glass-input)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                resize: 'vertical',
+              }}
+            />
+          </div>
         </form>
       </Modal>
     </div>

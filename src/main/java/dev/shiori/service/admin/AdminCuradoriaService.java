@@ -259,8 +259,17 @@ public class AdminCuradoriaService {
 
     @Transactional(readOnly = true)
     public Page<SugestaoEdicaoResponse> listarSugestoesPendentes(Pageable pageable, Long adminId) {
+        return listarSugestoes(StatusSugestao.PENDENTE, pageable, adminId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SugestaoEdicaoResponse> listarSugestoes(StatusSugestao status, Pageable pageable, Long adminId) {
         auditoriaService.obterEValidarAdmin(adminId);
-        return sugestaoEdicaoObraRepository.findByStatus(StatusSugestao.PENDENTE, pageable)
+        if (status != null) {
+            return sugestaoEdicaoObraRepository.findByStatus(status, pageable)
+                    .map(SugestaoEdicaoResponse::deEntidade);
+        }
+        return sugestaoEdicaoObraRepository.findAll(pageable)
                 .map(SugestaoEdicaoResponse::deEntidade);
     }
 

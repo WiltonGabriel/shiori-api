@@ -67,14 +67,34 @@ export interface SugestaoEdicaoResponse {
   id: number;
   obraId: number;
   obraTitulo: string;
-  usuarioId: number;
-  usuarioApelido: string;
-  status: 'PENDENTE' | 'APROVADA' | 'REJEITADA';
-  tituloSugerido?: string | null;
+  obraTituloOriginalAtual?: string | null;
+  obraCapaUrlAtual?: string | null;
+  obraSinopseAtual?: string | null;
+  obraTotalCapitulosAtual?: number | null;
+  obraTipoObraAtual?: string | null;
+  usuarioSugeridorId: number;
+  usuarioSugeridorApelido: string;
+  tituloPrincipalSugerido?: string | null;
+  tituloOriginalSugerido?: string | null;
+  capaUrlSugerida?: string | null;
   sinopseSugerida?: string | null;
+  totalCapitulosSugerido?: number | null;
+  tipoObraSugerido?: string | null;
   justificativa?: string | null;
-  parecerCuradoria?: string | null;
-  criadoEm: string;
+  status: 'PENDENTE' | 'APROVADA' | 'REJEITADA';
+  dataCriacao: string;
+  dataAvaliacao?: string | null;
+  parecerAdmin?: string | null;
+}
+
+export interface SugerirEdicaoRequest {
+  tituloPrincipal?: string;
+  tituloOriginal?: string;
+  capaUrl?: string;
+  sinopse?: string;
+  totalCapitulosLancados?: number;
+  tipoObra?: string;
+  justificativa: string;
 }
 
 export interface DenunciaComentarioResponse {
@@ -127,13 +147,23 @@ export interface PareamentoResponse {
 
 export interface ObraResponse {
   id: number;
-  titulo: string;
-  tipo: string;
-  status: string;
+  titulo?: string;
+  tituloPrincipal?: string;
+  tituloOriginal?: string | null;
+  tipo?: string;
+  tipoObra?: string;
+  status?: string;
+  statusPublicacao?: string;
+  statusCatalogo?: string;
   autor?: string | null;
   sinopse?: string | null;
+  capaUrl?: string | null;
+  totalCapitulosLancados?: number | null;
+  totalCapitulos?: number | null;
   generos?: string[];
-  oficial: boolean;
+  tags?: string[];
+  notaGeral?: number | null;
+  oficial?: boolean;
 }
 
 export interface AuthResponse {

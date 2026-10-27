@@ -33,6 +33,9 @@ export const ModerationTab: React.FC = () => {
   const [isAprovandoTagId, setIsAprovandoTagId] = useState<number | null>(null);
 
   const [sugestoes, setSugestoes] = useState<SugestaoEdicaoResponse[]>([]);
+  const [totalPaginasSugestoes, setTotalPaginasSugestoes] = useState(1);
+  const [paginaSugestoes, setPaginaSugestoes] = useState(0);
+  const [filtroStatusSugestao, setFiltroStatusSugestao] = useState<'PENDENTE' | 'APROVADA' | 'REJEITADA' | 'TODAS'>('PENDENTE');
   const [denunciasComentarios, setDenunciasComentarios] = useState<DenunciaComentarioResponse[]>([]);
   const [denunciasObras, setDenunciasObras] = useState<DenunciaObraResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,20 +70,31 @@ export const ModerationTab: React.FC = () => {
     }
   };
 
+  const carregarSugestoes = async (status: string = filtroStatusSugestao, pag: number = paginaSugestoes) => {
+    try {
+      const res = await AdminService.listarSugestoes(status as any, pag, 15);
+      setSugestoes(res.content || []);
+      setTotalPaginasSugestoes(res.totalPages || 1);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao carregar sugestões de edição.');
+    }
+  };
+
   const carregarDadosGerais = async () => {
     try {
       setIsLoading(true);
-      const [sugRes, denComRes, denObraRes] = await Promise.allSettled([
-        AdminService.listarSugestoesPendentes(),
+      const [denComRes, denObraRes] = await Promise.allSettled([
         AdminService.listarDenunciasComentarios(),
         AdminService.listarDenunciasObras(),
       ]);
 
-      if (sugRes.status === 'fulfilled') setSugestoes(sugRes.value.content || []);
       if (denComRes.status === 'fulfilled') setDenunciasComentarios(denComRes.value.content || []);
       if (denObraRes.status === 'fulfilled') setDenunciasObras(denObraRes.value.content || []);
 
-      await carregarTags(filtroStatusTag, paginaTags);
+      await Promise.all([
+        carregarTags(filtroStatusTag, paginaTags),
+        carregarSugestoes(filtroStatusSugestao, paginaSugestoes),
+      ]);
     } catch {
       toast.error('Erro ao carregar filas de moderação.');
     } finally {
@@ -95,6 +109,10 @@ export const ModerationTab: React.FC = () => {
   useEffect(() => {
     carregarTags(filtroStatusTag, paginaTags);
   }, [filtroStatusTag, paginaTags]);
+
+  useEffect(() => {
+    carregarSugestoes(filtroStatusSugestao, paginaSugestoes);
+  }, [filtroStatusSugestao, paginaSugestoes]);
 
   // Ações de Governança de Tags (Incremento 2.2)
   const handleAprovarTag = async (tag: SugestaoTagAdminResponse) => {
@@ -148,9 +166,9 @@ export const ModerationTab: React.FC = () => {
         selectedSugestao.aprovada,
         parecerSugestao.trim() || undefined
       );
-      setSugestoes((prev) => prev.filter((s) => s.id !== selectedSugestao.id));
       toast.success(`Sugestão ${selectedSugestao.aprovada ? 'aprovada' : 'rejeitada'} com sucesso!`);
       setSelectedSugestao(null);
+      await carregarSugestoes(filtroStatusSugestao, paginaSugestoes);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao avaliar sugestão.');
     } finally {
@@ -402,71 +420,227 @@ export const ModerationTab: React.FC = () => {
 
       {/* Conteúdo 1: Sugestões de Edição */}
       {subTab === 'SUGESTOES' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Filtros de Status da Sugestão de Edição */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Status da Fila:</span>
+              {(['PENDENTE', 'APROVADA', 'REJEITADA', 'TODAS'] as const).map((st) => (
+                <Button
+                  key={st}
+                  variant={filtroStatusSugestao === st ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => {
+                    setFiltroStatusSugestao(st);
+                    setPaginaSugestoes(0);
+                  }}
+                  style={{
+                    fontSize: '12px',
+                    borderColor: filtroStatusSugestao === st ? 'var(--brand)' : 'transparent',
+                  }}
+                >
+                  {st === 'TODAS' ? 'Todas' : st.charAt(0) + st.slice(1).toLowerCase()}
+                </Button>
+              ))}
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Página {paginaSugestoes + 1} de {totalPaginasSugestoes}
+            </span>
+          </div>
+
           {sugestoes.length === 0 ? (
             <Card style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Nenhuma sugestão de edição pendente na fila.
+              Nenhuma sugestão de edição encontrada para o filtro '{filtroStatusSugestao.toLowerCase()}'.
             </Card>
           ) : (
             sugestoes.map((sug) => (
-              <Card key={sug.id} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Card key={sug.id} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h3 style={{ fontSize: '15px', fontWeight: 600 }}>{sug.obraTitulo}</h3>
-                    <Badge variant="warning" size="sm">Sugestão #{sug.id}</Badge>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{sug.obraTitulo}</h3>
+                    <Badge
+                      variant={sug.status === 'APROVADA' ? 'success' : sug.status === 'REJEITADA' ? 'danger' : 'warning'}
+                      size="sm"
+                    >
+                      {sug.status === 'APROVADA' ? 'Aprovada' : sug.status === 'REJEITADA' ? 'Rejeitada' : 'Pendente'} #{sug.id}
+                    </Badge>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Sugerido por <strong>{sug.usuarioApelido}</strong> em {new Date(sug.criadoEm).toLocaleDateString()}
+                    Sugerido por <strong>{sug.usuarioSugeridorApelido}</strong> em {new Date(sug.dataCriacao).toLocaleDateString()}
                   </span>
                 </div>
 
-                <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {sug.tituloSugerido && (
+                {/* Comparativo de Metadados: Atual vs Sugerido */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                  {/* Coluna 1: Atual */}
+                  <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                      Metadados Atuais no Catálogo
+                    </span>
                     <div>
-                      <strong style={{ color: 'var(--text-secondary)' }}>Título Sugerido:</strong>{' '}
-                      <span style={{ color: 'var(--brand-light)' }}>{sug.tituloSugerido}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Título Principal:</span>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{sug.obraTitulo}</div>
                     </div>
-                  )}
-                  {sug.sinopseSugerida && (
-                    <div>
-                      <strong style={{ color: 'var(--text-secondary)' }}>Sinopse Sugerida:</strong>{' '}
-                      <p style={{ marginTop: '4px', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{sug.sinopseSugerida}</p>
+                    {sug.obraTituloOriginalAtual && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Título Original:</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{sug.obraTituloOriginalAtual}</div>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Formato:</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{sug.obraTipoObraAtual || '—'}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Capítulos:</span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{sug.obraTotalCapitulosAtual ?? '—'}</div>
+                      </div>
                     </div>
-                  )}
-                  {sug.justificativa && (
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
-                      Justificativa do usuário: "{sug.justificativa}"
+                    {sug.obraCapaUrlAtual && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Capa Atual:</span>
+                        <img
+                          src={sug.obraCapaUrlAtual}
+                          alt="Capa atual"
+                          style={{ width: '64px', height: '90px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                    {sug.obraSinopseAtual && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Sinopse Atual:</span>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', maxHeight: '70px', overflowY: 'auto' }}>
+                          {sug.obraSinopseAtual}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Coluna 2: Sugerido */}
+                  <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-glass-card)', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--brand-primary)' }}>
+                      Alterações Propostas
+                    </span>
+                    {sug.tituloPrincipalSugerido ? (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Título Principal Sugerido:</span>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-primary)' }}>{sug.tituloPrincipalSugerido}</div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Título principal inalterado</div>
+                    )}
+                    {sug.tituloOriginalSugerido && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Título Original Sugerido:</span>
+                        <div style={{ fontSize: '12px', color: 'var(--brand-primary)' }}>{sug.tituloOriginalSugerido}</div>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      {sug.tipoObraSugerido && (
+                        <div>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Formato Sugerido:</span>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-primary)' }}>{sug.tipoObraSugerido}</div>
+                        </div>
+                      )}
+                      {sug.totalCapitulosSugerido !== undefined && sug.totalCapitulosSugerido !== null && (
+                        <div>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Capítulos Sugeridos:</span>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--brand-primary)' }}>{sug.totalCapitulosSugerido}</div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    {sug.capaUrlSugerida && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nova Capa Sugerida:</span>
+                        <img
+                          src={sug.capaUrlSugerida}
+                          alt="Capa sugerida"
+                          style={{ width: '64px', height: '90px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '2px solid var(--brand-primary)' }}
+                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                    {sug.sinopseSugerida && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Sinopse Sugerida:</span>
+                        <p style={{ fontSize: '12px', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', maxHeight: '90px', overflowY: 'auto' }}>
+                          {sug.sinopseSugerida}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedSugestao({ id: sug.id, aprovada: false, obraTitulo: sug.obraTitulo });
-                      setParecerSugestao('');
-                    }}
-                    style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }}
-                  >
-                    <XCircle size={14} />
-                    <span>Rejeitar</span>
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedSugestao({ id: sug.id, aprovada: true, obraTitulo: sug.obraTitulo });
-                      setParecerSugestao('');
-                    }}
-                  >
-                    <CheckCircle2 size={14} />
-                    <span>Aprovar Edição</span>
-                  </Button>
-                </div>
+                {/* Justificativa do Usuário */}
+                {sug.justificativa && (
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', borderLeft: '3px solid var(--brand-primary)', fontSize: '12px' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>Justificativa / Fonte da Sugestão:</strong>
+                    <p style={{ color: 'var(--text-primary)', marginTop: '2px' }}>"{sug.justificativa}"</p>
+                  </div>
+                )}
+
+                {/* Parecer prévio se já avaliada */}
+                {sug.parecerAdmin && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
+                    Parecer da moderação: "{sug.parecerAdmin}"
+                  </div>
+                )}
+
+                {/* Ações para PENDENTE */}
+                {sug.status === 'PENDENTE' && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSugestao({ id: sug.id, aprovada: false, obraTitulo: sug.obraTitulo });
+                        setParecerSugestao('');
+                      }}
+                      style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }}
+                    >
+                      <XCircle size={14} />
+                      <span>Rejeitar</span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSugestao({ id: sug.id, aprovada: true, obraTitulo: sug.obraTitulo });
+                        setParecerSugestao('');
+                      }}
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Aprovar Edição</span>
+                    </Button>
+                  </div>
+                )}
               </Card>
             ))
+          )}
+
+          {/* Paginação de Sugestões de Edição */}
+          {totalPaginasSugestoes > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={paginaSugestoes === 0}
+                onClick={() => setPaginaSugestoes((p) => Math.max(0, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={paginaSugestoes + 1 >= totalPaginasSugestoes}
+                onClick={() => setPaginaSugestoes((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </div>
           )}
         </div>
       )}

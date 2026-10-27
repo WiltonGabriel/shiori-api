@@ -9,24 +9,24 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, { bg: string; color: string; border: string }> = {
   brand: {
-    bg: 'rgba(99, 102, 241, 0.16)',
-    color: 'var(--brand-light)',
-    border: 'rgba(99, 102, 241, 0.35)',
+    bg: 'var(--badge-brand-bg)',
+    color: 'var(--badge-brand-text)',
+    border: 'var(--badge-brand-border)',
   },
   success: {
-    bg: 'rgba(16, 185, 129, 0.16)',
-    color: '#34D399',
-    border: 'rgba(16, 185, 129, 0.35)',
+    bg: 'var(--badge-success-bg)',
+    color: 'var(--badge-success-text)',
+    border: 'var(--badge-success-border)',
   },
   warning: {
-    bg: 'rgba(245, 158, 11, 0.16)',
-    color: '#FBBF24',
-    border: 'rgba(245, 158, 11, 0.35)',
+    bg: 'var(--badge-warning-bg)',
+    color: 'var(--badge-warning-text)',
+    border: 'var(--badge-warning-border)',
   },
   danger: {
-    bg: 'rgba(244, 63, 94, 0.16)',
-    color: '#FB7185',
-    border: 'rgba(244, 63, 94, 0.35)',
+    bg: 'var(--badge-danger-bg)',
+    color: 'var(--badge-danger-text)',
+    border: 'var(--badge-danger-border)',
   },
   neutral: {
     bg: 'rgba(148, 163, 184, 0.12)',
@@ -34,9 +34,9 @@ const variantStyles: Record<BadgeVariant, { bg: string; color: string; border: s
     border: 'var(--border-subtle)',
   },
   info: {
-    bg: 'rgba(6, 182, 212, 0.16)',
-    color: '#38BDF8',
-    border: 'rgba(6, 182, 212, 0.35)',
+    bg: 'var(--badge-info-bg)',
+    color: 'var(--badge-info-text)',
+    border: 'var(--badge-info-border)',
   },
 };
 
